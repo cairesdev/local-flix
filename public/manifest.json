@@ -1,0 +1,11 @@
+{
+  "name": "Superflix",
+  "short_name": "Superflix",
+  "description": "Assista aos melhores filmes, séries e animes em HD",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#e50914",
+  "orientation": "portrait-primary",
+  "categories": ["entertainment", "video"]
+}
