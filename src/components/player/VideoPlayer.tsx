@@ -176,7 +176,7 @@ export function VideoPlayer({
         <div className="absolute inset-0 flex items-center justify-center bg-black">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-[var(--accent-primary)] animate-spin mx-auto mb-4" />
-            <p className="text-white">Carregando player...</p>
+            <p className="text-[var(--text-primary)]">Carregando player...</p>
           </div>
         </div>
       )}
@@ -185,13 +185,13 @@ export function VideoPlayer({
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-black">
           <div className="text-center max-w-sm px-4">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-white mb-4">{error}</p>
+            <AlertCircle className="w-12 h-12 text-[#ff3b30] mx-auto mb-4" />
+            <p className="text-[var(--text-primary)] mb-4">{error}</p>
             <div className="flex gap-2 justify-center">
               {hasMoreProviders && (
                 <button
                   onClick={goToNextProvider}
-                  className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors"
+                  className="btn-primary !px-4 !py-2 text-sm"
                 >
                   <SkipForward size={16} />
                   Tentar outro servidor
@@ -204,7 +204,7 @@ export function VideoPlayer({
                   setMode('direct');
                   setCandidateIdx(0);
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
+                className="btn-secondary !px-4 !py-2 text-sm"
               >
                 <RotateCw size={16} />
                 Recarregar

@@ -171,39 +171,20 @@ export default function TVPage() {
 
   // Página de listagem de canais
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      {/* Header Mobile */}
+    <div className="min-h-screen bg-[var(--bg-primary)] pt-[var(--header-height)]">
+      {/* Header Mobile - fica abaixo do header global fixo (sticky com offset,
+          em vez de um segundo cabeçalho sobrepondo o principal) */}
       {isMobile && (
-        <div className="sticky top-0 z-40 bg-[#0a0a0a] border-b border-white/10">
-          {/* Título e LIVE */}
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-2">
-              <Tv size={24} className="text-white" />
-              <h1 className="text-xl font-bold text-white">TV ao Vivo</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => loadChannels(true)}
-                className="p-2 text-gray-400 hover:text-white"
-              >
-                <RefreshCw size={20} />
-              </button>
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-red-600 text-white text-sm font-bold rounded-full">
-                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                LIVE
-              </span>
-            </div>
-          </div>
-
+        <div className="sticky top-[var(--header-height)] z-40 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-color)]">
           {/* Tabs */}
-          <div className="flex border-b border-white/10">
+          <div className="flex border-b border-[var(--border-color)]">
             <button
               onClick={() => setActiveTab('channels')}
               className={cn(
                 'flex-1 py-3 text-sm font-medium transition-colors',
                 activeTab === 'channels'
-                  ? 'text-white border-b-2 border-green-500'
-                  : 'text-gray-500'
+                  ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
+                  : 'text-[var(--text-tertiary)]'
               )}
             >
               <div className="flex items-center justify-center gap-2">
@@ -216,8 +197,8 @@ export default function TVPage() {
               className={cn(
                 'flex-1 py-3 text-sm font-medium transition-colors',
                 activeTab === 'favorites'
-                  ? 'text-white border-b-2 border-green-500'
-                  : 'text-gray-500'
+                  ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
+                  : 'text-[var(--text-tertiary)]'
               )}
             >
               <div className="flex items-center justify-center gap-2">
@@ -230,8 +211,8 @@ export default function TVPage() {
               className={cn(
                 'flex-1 py-3 text-sm font-medium transition-colors',
                 activeTab === 'recent'
-                  ? 'text-white border-b-2 border-green-500'
-                  : 'text-gray-500'
+                  ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
+                  : 'text-[var(--text-tertiary)]'
               )}
             >
               <div className="flex items-center justify-center gap-2">
@@ -244,8 +225,8 @@ export default function TVPage() {
               className={cn(
                 'flex-1 py-3 text-sm font-medium transition-colors',
                 activeTab === 'schedule'
-                  ? 'text-white border-b-2 border-green-500'
-                  : 'text-gray-500'
+                  ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
+                  : 'text-[var(--text-tertiary)]'
               )}
             >
               <div className="flex items-center justify-center gap-2">
@@ -255,26 +236,33 @@ export default function TVPage() {
             </button>
           </div>
 
-          {/* Busca */}
-          <div className="p-4">
-            <div className="relative">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          {/* Busca + Atualizar */}
+          <div className="flex items-center gap-2 p-4">
+            <div className="relative flex-1">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
               <input
                 type="text"
                 placeholder="Buscar canal..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
+                className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-elevated)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-white/30 transition-colors"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
                 >
                   <X size={18} />
                 </button>
               )}
             </div>
+            <button
+              onClick={() => loadChannels(true)}
+              className="p-2.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              aria-label="Atualizar canais"
+            >
+              <RefreshCw size={18} />
+            </button>
           </div>
 
           {/* Filtros de Categoria */}
@@ -287,8 +275,8 @@ export default function TVPage() {
                   className={cn(
                     'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
                     activeCategory === cat
-                      ? 'bg-green-600 text-white'
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                      ? 'bg-white text-black'
+                      : 'bg-white/5 text-[var(--text-secondary)] hover:bg-white/10'
                   )}
                 >
                   {cat}
@@ -301,31 +289,31 @@ export default function TVPage() {
 
       {/* Header Desktop */}
       {!isMobile && (
-        <div className="px-8 py-12">
+        <div className="px-8 pt-8 pb-4">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-4xl font-bold text-white">TV Ao Vivo</h1>
+            <h1 className="text-display text-[var(--text-primary)]">TV Ao Vivo</h1>
             <button
               onClick={() => loadChannels(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             >
               <RefreshCw size={18} />
               Atualizar
             </button>
           </div>
-          <p className="text-gray-400 text-lg">
+          <p className="text-body text-[var(--text-secondary)]">
             Esportes, Notícias e seus canais favoritos em tempo real.
           </p>
 
           {/* Busca Desktop */}
           <div className="mt-6 max-w-md">
             <div className="relative">
-              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
               <input
                 type="text"
                 placeholder="Buscar canal..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
+                className="w-full pl-12 pr-4 py-3 bg-[var(--bg-elevated)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-white/30 transition-colors"
               />
             </div>
           </div>
@@ -333,26 +321,35 @@ export default function TVPage() {
       )}
 
       {/* Conteúdo */}
-      <div className={cn('pb-20', isMobile ? 'px-4' : 'px-8')}>
+      <div className={cn(isMobile ? 'px-4 pb-8' : 'px-8 pb-20')}>
+        {/* Contador de canais - substitui a antiga barra fixa no rodapé
+            (que sobrepunha a navegação mobile fixa embaixo) */}
+        {!isLoading && !error && activeTab !== 'schedule' && (
+          <p className="text-caption text-[var(--text-tertiary)] mb-4 pt-4">
+            {filteredChannels.length} canais disponíveis
+            {favorites.length > 0 && ` • ${favorites.length} favoritos`}
+          </p>
+        )}
+
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-10 h-10 border-3 border-green-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-10 h-10 border-[3px] border-[var(--text-primary)] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : error ? (
           <div className="text-center py-20">
-            <p className="text-red-500 mb-4">{error}</p>
+            <p className="text-[#ff3b30] mb-4">{error}</p>
             <button
               onClick={() => loadChannels()}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="btn-primary"
             >
               Tentar novamente
             </button>
           </div>
         ) : activeTab === 'schedule' ? (
           <div className="text-center py-20">
-            <Calendar size={48} className="mx-auto mb-4 text-gray-600" />
-            <h2 className="text-xl font-semibold text-white mb-2">Em breve</h2>
-            <p className="text-gray-500">A programação estará disponível em breve.</p>
+            <Calendar size={48} className="mx-auto mb-4 text-[var(--text-tertiary)]" />
+            <h2 className="text-title text-[var(--text-primary)] mb-2">Em breve</h2>
+            <p className="text-[var(--text-secondary)]">A programação estará disponível em breve.</p>
           </div>
         ) : isMobile ? (
           /* Grid Mobile 2x2 */
@@ -373,8 +370,8 @@ export default function TVPage() {
             {searchQuery ? (
               /* Resultados de busca */
               <div>
-                <h2 className="text-xl font-semibold text-white mb-4">
-                  Resultados para "{searchQuery}"
+                <h2 className="text-title text-[var(--text-primary)] mb-4">
+                  Resultados para &quot;{searchQuery}&quot;
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {filteredChannels.map(channel => (
@@ -404,21 +401,6 @@ export default function TVPage() {
           </div>
         )}
       </div>
-
-      {/* Footer Mobile com Stats */}
-      {isMobile && (
-        <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a] border-t border-white/10 px-4 py-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-400">
-              {filteredChannels.length} canais disponíveis
-            </span>
-            <span className="flex items-center gap-1 text-gray-400">
-              <Heart size={14} className="text-red-500" />
-              {favorites.length} favoritos
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -439,18 +421,18 @@ function ChannelCard({
     <div className="relative group">
       <button
         onClick={onSelect}
-        className="w-full bg-[#1a1a1a] rounded-xl overflow-hidden hover:bg-[#252525] transition-colors"
+        className="w-full bg-[var(--bg-secondary)] rounded-xl overflow-hidden transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-[var(--shadow-md)]"
       >
         {/* Badge LIVE */}
         <div className="absolute top-2 left-2 z-10">
-          <span className="flex items-center gap-1 px-2 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded">
+          <span className="flex items-center gap-1 px-2 py-0.5 bg-[#ff3b30] text-white text-[10px] font-bold rounded">
             <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
             LIVE
           </span>
         </div>
 
         {/* Logo */}
-        <div className="aspect-video flex items-center justify-center p-4 bg-[#252525]">
+        <div className="aspect-video flex items-center justify-center p-4 bg-[var(--bg-tertiary)]">
           {channel.logo ? (
             <img
               src={channel.logo}
@@ -461,13 +443,13 @@ function ChannelCard({
               }}
             />
           ) : (
-            <Tv size={32} className="text-gray-600" />
+            <Tv size={32} className="text-[var(--text-tertiary)]" />
           )}
         </div>
 
         {/* Nome */}
         <div className="p-3">
-          <p className="text-white text-sm font-medium truncate">{channel.name}</p>
+          <p className="text-[var(--text-primary)] text-sm font-medium truncate">{channel.name}</p>
         </div>
       </button>
 
@@ -483,7 +465,7 @@ function ChannelCard({
           size={16}
           className={cn(
             'transition-colors',
-            isFavorite ? 'fill-red-500 text-red-500' : 'text-white'
+            isFavorite ? 'fill-[#ff3b30] text-[#ff3b30]' : 'text-white'
           )}
         />
       </button>
@@ -516,7 +498,7 @@ function CategoryRow({
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-white mb-4">{title}</h2>
+      <h2 className="text-title text-[var(--text-primary)] mb-4">{title}</h2>
       <div className="relative group/row">
         {/* Botao Scroll Esquerda */}
         <button
@@ -672,9 +654,9 @@ function TVPlayer({
       {/* Loading overlay */}
       {!isPlayerReady && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black">
-          <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-white text-lg font-medium">{channel.name}</p>
-          <p className="text-gray-500 text-sm mt-2">Carregando transmissao...</p>
+          <div className="w-16 h-16 border-4 border-[var(--text-primary)] border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-[var(--text-primary)] text-lg font-medium">{channel.name}</p>
+          <p className="text-[var(--text-tertiary)] text-sm mt-2">Carregando transmissão...</p>
         </div>
       )}
 
@@ -690,14 +672,14 @@ function TVPlayer({
           <div className="flex items-center justify-between">
             <button
               onClick={onClose}
-              className="flex items-center gap-2 text-white hover:text-green-400 transition-colors"
+              className="flex items-center gap-2 text-white hover:opacity-70 transition-opacity"
             >
               <ArrowLeft size={24} />
               <span className="font-medium hidden sm:inline">Voltar</span>
             </button>
 
             <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-red-600 text-white text-sm font-bold rounded">
+              <span className="flex items-center gap-1.5 px-3 py-1 bg-[#ff3b30] text-white text-sm font-bold rounded">
                 <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
                 AO VIVO
               </span>
@@ -721,17 +703,17 @@ function TVPlayer({
                   {channel.name}
                 </h2>
                 {channel.category && (
-                  <p className="text-gray-400 text-xs sm:text-sm">{channel.category}</p>
+                  <p className="text-[var(--text-secondary)] text-xs sm:text-sm">{channel.category}</p>
                 )}
               </div>
             </div>
 
             <button
               onClick={toggleFullscreen}
-              className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+              className="btn-icon"
               title={isFullscreen ? 'Sair da tela cheia (F)' : 'Tela cheia (F)'}
             >
-              {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
+              {isFullscreen ? <Minimize size={22} /> : <Maximize size={22} />}
             </button>
           </div>
         </div>

@@ -51,7 +51,7 @@ export function ContinueWatchingRow() {
   return (
     <div className="px-4 md:px-12 py-4">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl md:text-2xl font-semibold text-white">
+        <h2 className="text-headline text-[var(--text-primary)]">
           Continuar Assistindo
         </h2>
       </div>
@@ -103,7 +103,7 @@ function ContinueWatchingCard({ item }: { item: WatchProgressItem }) {
       href={watchUrl}
       className="flex-shrink-0 w-40 md:w-48 group/card"
     >
-      <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-gray-800">
+      <div className="poster-card aspect-[2/3]">
         <img
           src={posterUrl}
           alt={item.title}
@@ -118,9 +118,9 @@ function ContinueWatchingCard({ item }: { item: WatchProgressItem }) {
         </div>
 
         {/* Barra de Progresso */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700">
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
           <div
-            className="h-full bg-green-500"
+            className="h-full bg-[var(--accent-primary)]"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -134,10 +134,10 @@ function ContinueWatchingCard({ item }: { item: WatchProgressItem }) {
       </div>
 
       <div className="mt-2">
-        <h3 className="text-white text-sm font-medium line-clamp-1 group-hover/card:text-green-400 transition-colors">
+        <h3 className="text-[var(--text-primary)] text-sm font-medium line-clamp-1 group-hover/card:text-[var(--text-secondary)] transition-colors">
           {item.title}
         </h3>
-        <p className="text-gray-400 text-xs mt-0.5">
+        <p className="text-[var(--text-secondary)] text-xs mt-0.5">
           {progressPercent}% assistido
         </p>
       </div>
