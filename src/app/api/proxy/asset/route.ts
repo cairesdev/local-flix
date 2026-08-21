@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveWithCloudflare, fetchWithResolvedDNS } from '@/lib/dns-resolver';
 import { getAllowedProxyHosts } from '@/services/providers';
-
-// CDNs genéricos de infraestrutura (não são "provedores de conteúdo",
-// então continuam fixos aqui) usados pelos players para carregar libs/HLS.
-const TRUSTED_CDN_DOMAINS = [
-  'cdn.jsdelivr.net',
-  'cdnjs.cloudflare.com',
-  'unpkg.com',
-  'akamaihd.net',
-  'cloudfront.net',
-  'fastly.net',
-];
+import { TRUSTED_CDN_DOMAINS } from '@/lib/trusted-cdns';
 
 function isAllowedDomain(url: string, allowedHosts: string[]): boolean {
   try {

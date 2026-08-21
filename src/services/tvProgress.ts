@@ -4,7 +4,6 @@
  * Estrategia hibrida: localStorage + servidor
  */
 
-import { STORAGE_KEYS } from '@/lib/constants';
 import type { Channel } from '@/types/tv';
 
 const TV_FAVORITES_KEY = 'superflix_tv_favorites';
@@ -128,17 +127,15 @@ function scheduleSyncFavorites() {
 }
 
 // Sincronizar favoritos com servidor
+// Autenticacao via cookie httpOnly (enviado automaticamente em requests
+// same-origin) - sem token em localStorage/JS. Usuario anonimo recebe 401
+// do servidor e a sincronizacao e simplesmente ignorada.
 export async function syncFavoritesToServer(): Promise<void> {
   if (typeof window === 'undefined') return;
 
-  const token = localStorage.getItem(STORAGE_KEYS.token);
-  if (!token) return;
-
   try {
     // Buscar favoritos do servidor
-    const response = await fetch('/api/tv/favorites', {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const response = await fetch('/api/tv/favorites');
 
     if (response.ok) {
       const serverFavorites: TVFavorite[] = await response.json();
@@ -160,7 +157,6 @@ export async function syncFavoritesToServer(): Promise<void> {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify(fav),
         });
@@ -177,13 +173,8 @@ export async function syncFavoritesToServer(): Promise<void> {
 export async function loadFavoritesFromServer(): Promise<void> {
   if (typeof window === 'undefined') return;
 
-  const token = localStorage.getItem(STORAGE_KEYS.token);
-  if (!token) return;
-
   try {
-    const response = await fetch('/api/tv/favorites', {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const response = await fetch('/api/tv/favorites');
 
     if (response.ok) {
       const serverFavorites: TVFavorite[] = await response.json();
@@ -275,9 +266,6 @@ function scheduleSyncHistory() {
 export async function syncHistoryToServer(): Promise<void> {
   if (typeof window === 'undefined') return;
 
-  const token = localStorage.getItem(STORAGE_KEYS.token);
-  if (!token) return;
-
   try {
     const items = Array.from(historyCache.values());
 
@@ -286,7 +274,6 @@ export async function syncHistoryToServer(): Promise<void> {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(item),
       });
@@ -300,13 +287,8 @@ export async function syncHistoryToServer(): Promise<void> {
 export async function loadHistoryFromServer(): Promise<void> {
   if (typeof window === 'undefined') return;
 
-  const token = localStorage.getItem(STORAGE_KEYS.token);
-  if (!token) return;
-
   try {
-    const response = await fetch('/api/tv/history', {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const response = await fetch('/api/tv/history');
 
     if (response.ok) {
       const serverHistory: TVHistoryItem[] = await response.json();
@@ -347,17 +329,14 @@ export function initTVService() {
     await loadHistoryFromServer();
   }, 2000);
 
-  // Sync ao sair da pagina
+  // Sync ao sair da pagina - sendBeacon envia o cookie httpOnly de sessao
+  // automaticamente (mesma origem), sem precisar embutir token no corpo.
   window.addEventListener('beforeunload', () => {
-    const token = localStorage.getItem(STORAGE_KEYS.token);
-    if (token) {
-      // Usar sendBeacon para historico - precisa de Blob para enviar JSON
-      const historyItems = Array.from(historyCache.values()).slice(0, 5);
-      if (historyItems.length > 0) {
-        const data = JSON.stringify({ ...historyItems[0], token });
-        const blob = new Blob([data], { type: 'application/json' });
-        navigator.sendBeacon('/api/tv/history', blob);
-      }
+    const historyItems = Array.from(historyCache.values()).slice(0, 5);
+    if (historyItems.length > 0) {
+      const data = JSON.stringify(historyItems[0]);
+      const blob = new Blob([data], { type: 'application/json' });
+      navigator.sendBeacon('/api/tv/history', blob);
     }
   });
 }

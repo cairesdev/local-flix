@@ -102,13 +102,12 @@ function scheduleSyncToServer() {
 }
 
 // Sincronizar com servidor
+// Autenticacao via cookie httpOnly (enviado automaticamente pelo browser em
+// requests same-origin) - sem token em localStorage/JS. Se o usuario nao
+// estiver logado, o servidor responde 401 e simplesmente ignoramos.
 export async function syncToServer(force = false): Promise<void> {
   if (!pendingSync && !force) return;
   if (typeof window === 'undefined') return;
-
-  // Verificar se usuario esta logado
-  const token = localStorage.getItem(STORAGE_KEYS.token);
-  if (!token) return;
 
   try {
     const items = Array.from(progressCache.values())
@@ -129,7 +128,6 @@ export async function syncToServer(force = false): Promise<void> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({ items }),
     });
@@ -147,15 +145,8 @@ export async function syncToServer(force = false): Promise<void> {
 export async function loadFromServer(): Promise<void> {
   if (typeof window === 'undefined') return;
 
-  const token = localStorage.getItem(STORAGE_KEYS.token);
-  if (!token) return;
-
   try {
-    const response = await fetch('/api/history/continue', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    const response = await fetch('/api/history/continue');
 
     if (response.ok) {
       const serverItems: WatchProgressItem[] = await response.json();
@@ -209,27 +200,26 @@ export function initWatchProgress() {
   // Sincronizar ao fechar pagina
   window.addEventListener('beforeunload', () => {
     if (pendingSync) {
-      // Usar sendBeacon para garantir que seja enviado
-      const token = localStorage.getItem(STORAGE_KEYS.token);
-      if (token) {
-        const items = Array.from(progressCache.values())
-          .filter(item => item.progress > 0)
-          .map(item => ({
-            tmdb_id: item.tmdb_id,
-            title: item.title,
-            poster_path: item.poster_path,
-            media_type: item.media_type,
-            season: item.season,
-            episode: item.episode,
-            progress: item.progress,
-          }));
+      // Usar sendBeacon para garantir que seja enviado - o cookie httpOnly
+      // de sessao vai junto automaticamente (mesma origem), sem precisar
+      // embutir nenhum token no corpo da requisicao.
+      const items = Array.from(progressCache.values())
+        .filter(item => item.progress > 0)
+        .map(item => ({
+          tmdb_id: item.tmdb_id,
+          title: item.title,
+          poster_path: item.poster_path,
+          media_type: item.media_type,
+          season: item.season,
+          episode: item.episode,
+          progress: item.progress,
+        }));
 
-        if (items.length > 0) {
-          navigator.sendBeacon(
-            '/api/history/sync',
-            JSON.stringify({ items, token })
-          );
-        }
+      if (items.length > 0) {
+        navigator.sendBeacon(
+          '/api/history/sync',
+          JSON.stringify({ items })
+        );
       }
     }
   });

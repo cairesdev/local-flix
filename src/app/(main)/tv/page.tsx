@@ -656,6 +656,13 @@ function TVPlayer({
         className="absolute inset-0 w-full h-full border-0"
         allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
         referrerPolicy="no-referrer-when-downgrade"
+        // Sem atributo "sandbox": o embedtv.lat/live detecta a simples
+        // presença do sandbox (mesmo liberado) e mostra a tela "DIGA NÃO AO
+        // SANDBOX" em vez do canal. Sempre roda via /api/proxy/embed, então
+        // o interceptor injetado (sobrescreve window.open, bloqueia cliques
+        // em links de anúncio/tracking, remove scripts de ads conhecidos)
+        // continua sendo a proteção contra popup/redirect - só deixou de
+        // ser reforçada nativamente pelo navegador.
         style={{ border: 'none', background: 'black' }}
         onLoad={() => {
           setTimeout(() => onPlayerReady(), 1500);

@@ -226,6 +226,18 @@ export function VideoPlayer({
           )}
           allowFullScreen
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          // Sem atributo "sandbox": vários players (ex.: superflixapi.pro)
+          // detectam a simples presença do sandbox - mesmo com todas as
+          // flags liberadas, `frameElement.sandbox.length > 0` já é
+          // suficiente pra eles recusarem rodar. A documentação oficial
+          // deles também usa iframe sem sandbox. A proteção contra
+          // popup/redirect de anúncio deixa de ser nativa do navegador e
+          // passa a depender só das camadas de JS: no modo "proxy" o
+          // interceptor injetado sobrescreve window.open e intercepta
+          // cliques em links de anúncio/tracking; no modo "direct" (domínio
+          // real do provedor, sem nosso script) não há essa rede de
+          // segurança - se voltar a aparecer popup/redirect nesse modo, dá
+          // pra reavaliar.
           onLoad={handleLoad}
           onError={handleError}
         />

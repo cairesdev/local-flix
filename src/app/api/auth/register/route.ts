@@ -129,12 +129,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Set auth_token cookie for middleware authentication
-    response.cookies.set('auth_token', token, {
+    // Set auth cookie for middleware authentication
+    response.cookies.set(env.auth.cookieName, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: env.isProduction,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: env.auth.cookieMaxAgeSeconds,
       path: '/',
     });
 

@@ -1,12 +1,10 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { STORAGE_KEYS } from '@/lib/constants';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { User } from '@/types/user';
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -20,39 +18,40 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load auth state from localStorage
+  // Sessão vive no cookie httpOnly (setado pelo servidor no login/register).
+  // Nada de token em localStorage: um script de terceiro rodando dentro de
+  // um iframe proxy (players de vídeo, ex.: TV ao vivo) nunca tem acesso a
+  // um cookie httpOnly, mas teria acesso total ao localStorage do nosso
+  // domínio se o token estivesse lá. Ao montar, só perguntamos ao servidor
+  // quem é o usuário atual - o cookie vai junto automaticamente.
   useEffect(() => {
-    const savedToken = localStorage.getItem(STORAGE_KEYS.token);
-    const savedUser = localStorage.getItem(STORAGE_KEYS.user);
+    let cancelled = false;
 
-    if (savedToken && savedUser) {
-      try {
-        setToken(savedToken);
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error('Error parsing saved user:', e);
-        localStorage.removeItem(STORAGE_KEYS.token);
-        localStorage.removeItem(STORAGE_KEYS.user);
-      }
-    }
-    setIsLoading(false);
-  }, []);
+    fetch('/api/auth/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data) {
+          setUser({
+            id: data.id,
+            email: data.email,
+            name: data.name,
+            isAdmin: data.isAdmin,
+            status: data.status,
+            createdAt: data.createdAt,
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
-  const saveAuth = useCallback((newToken: string, newUser: User) => {
-    setToken(newToken);
-    setUser(newUser);
-    localStorage.setItem(STORAGE_KEYS.token, newToken);
-    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(newUser));
-  }, []);
-
-  const clearAuth = useCallback(() => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem(STORAGE_KEYS.token);
-    localStorage.removeItem(STORAGE_KEYS.user);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -68,7 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(data.error || 'Erro ao fazer login');
     }
 
-    saveAuth(data.token, data.user);
+    // O cookie httpOnly já foi setado pelo servidor na resposta.
+    setUser(data.user);
   };
 
   const register = async (email: string, password: string, name?: string) => {
@@ -84,28 +84,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(data.error || 'Erro ao criar conta');
     }
 
-    saveAuth(data.token, data.user);
+    setUser(data.user);
   };
 
   const logout = async () => {
-    // Clear cookie on server
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch (error) {
       console.error('Error clearing auth cookie:', error);
     }
-    clearAuth();
+    setUser(null);
   };
 
   const updateProfile = async (name: string) => {
-    if (!token) throw new Error('Não autenticado');
+    if (!user) throw new Error('Não autenticado');
 
     const response = await fetch('/api/auth/profile', {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     });
 
@@ -115,34 +111,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(data.error || 'Erro ao atualizar perfil');
     }
 
-    const updatedUser = { ...user!, name };
-    setUser(updatedUser);
-    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(updatedUser));
+    setUser((prev) => (prev ? { ...prev, name } : prev));
   };
 
   const refreshUser = async () => {
-    if (!token) return;
-
     try {
-      const response = await fetch('/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch('/api/auth/me');
 
       if (response.ok) {
         const data = await response.json();
-        const updatedUser: User = {
+        setUser({
           id: data.id,
           email: data.email,
           name: data.name,
           isAdmin: data.isAdmin,
-        };
-        setUser(updatedUser);
-        localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(updatedUser));
+          status: data.status,
+          createdAt: data.createdAt,
+        });
       } else {
-        // Token inválido, fazer logout
-        clearAuth();
+        // Cookie inválido/expirado, fazer logout
+        setUser(null);
       }
     } catch (error) {
       console.error('Error refreshing user:', error);
@@ -153,9 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        token,
         isLoading,
-        isAuthenticated: !!user && !!token,
+        isAuthenticated: !!user,
         login,
         register,
         logout,

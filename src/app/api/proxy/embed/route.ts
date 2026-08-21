@@ -21,7 +21,59 @@ function isAllowedDomain(url: string, allowedHosts: string[]): boolean {
 // (subdomínios como cdn.provedor.com já são cobertos pelo endsWith acima).
 const shouldProxyUrl = isAllowedDomain;
 
+// Boas práticas: os sites de player de terceiros costumam vir carregados de
+// redes de anúncio (popunders, redirects) e scripts de analytics/tracking
+// externos ao Superflix. Nada disso deve rodar dentro do nosso player -
+// nem para bloquear o vídeo, nem para redirecionar o usuário. Esta lista
+// cobre as redes mais comuns nesse tipo de site; é usada tanto para tirar
+// <script>/<ins> dessas redes do HTML (servidor) quanto para bloquear
+// requisições dinâmicas para elas (interceptor no cliente).
+const AD_AND_TRACKING_DOMAINS = [
+  // Redes de popunder/push comuns em sites de streaming "pirata"
+  'popads.net', 'popcash.net', 'poprevenue.com', 'propellerads.com',
+  'propellerapi.com', 'adsterra.com', 'a-ads.com', 'exoclick.com',
+  'juicyads.com', 'mgid.com', 'clickadu.com', 'hilltopads.net',
+  'adcash.com', 'smartyads.com', 'richads.com', 'onclickalgo.com',
+  'yllix.com', 'bidvertiser.com', 'adskeeper.co.uk', 'trafficjunky.net',
+  'adprovider.io', 'galaksion.com', 'clickaine.com', 'monetag.com',
+  'onesignal.com', 'pushnami.com', 'adnxs.com',
+  // Redes de anúncio "mainstream" que também aparecem embutidas
+  'doubleclick.net', 'googlesyndication.com', 'googleadservices.com',
+  'taboola.com', 'outbrain.com', 'revcontent.com',
+  // Analytics/tracking externos (não têm nada a ver com métricas do
+  // Superflix - não devem rodar dentro do player de terceiros)
+  'google-analytics.com', 'googletagmanager.com', 'connect.facebook.net',
+  'facebook.net', 'hotjar.com', 'clarity.ms', 'mixpanel.com',
+  'segment.io', 'amplitude.com', 'mc.yandex.ru',
+];
+
+function isAdOrTrackingUrl(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return AD_AND_TRACKING_DOMAINS.some((d) => hostname === d || hostname.endsWith('.' + d));
+  } catch {
+    return false;
+  }
+}
+
+/** Remove tags <script src="..."> e <ins class="adsbygoogle" ...> de redes de anúncio/tracking conhecidas. */
+function stripAdScripts(html: string): string {
+  return html
+    // <script ... src="https://rede-de-anuncio.com/..." ...>...</script> (com ou sem corpo)
+    .replace(
+      /<script\b[^>]*\bsrc=(["'])(https?:\/\/[^"']+)\1[^>]*>[\s\S]*?<\/script>/gi,
+      (match, _q, src) => (isAdOrTrackingUrl(src) ? '' : match)
+    )
+    // <ins class="adsbygoogle" ...></ins> - unidades de anúncio do AdSense e similares
+    .replace(/<ins\b[^>]*\bclass=(["'])[^"']*adsbygoogle[^"']*\1[^>]*>[\s\S]*?<\/ins>/gi, '');
+}
+
 function rewriteUrlsToProxy(html: string, baseOrigin: string, allowedHosts: string[]): string {
+  // Primeiro remove scripts/unidades de anúncio e tracking conhecidos -
+  // antes de qualquer reescrita de URL, para não desperdiçar trabalho
+  // "proxiando" algo que vai ser descartado de qualquer forma.
+  html = stripAdScripts(html);
+
   // Função para criar URL de proxy
   const proxyUrl = (url: string) => `/api/proxy/asset?url=${encodeURIComponent(url)}`;
 
@@ -63,8 +115,52 @@ function rewriteUrlsToProxy(html: string, baseOrigin: string, allowedHosts: stri
   const interceptorScript = `
 <script>
 (function() {
+  // ------------------------------------------------------------------
+  // Shim de localStorage/sessionStorage: o iframe é sandboxed SEM
+  // "allow-same-origin" de propósito (para que o conteúdo de terceiros
+  // nunca enxergue o storage do nosso próprio site - ali fica o token de
+  // login do usuário). Isso faz o navegador lançar SecurityError em
+  // qualquer acesso a localStorage/sessionStorage, e alguns players
+  // acessam sem try/catch, quebrando o script inteiro no meio. Damos a
+  // eles um storage falso em memória (isolado, descartado ao trocar de
+  // canal/título) só para não travar - nunca o storage real do site.
+  // ------------------------------------------------------------------
+  function createMemoryStorage() {
+    var store = Object.create(null);
+    var keys = [];
+    return {
+      getItem: function(k) { return Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null; },
+      setItem: function(k, v) { if (!(k in store)) keys.push(k); store[k] = String(v); },
+      removeItem: function(k) { delete store[k]; var i = keys.indexOf(k); if (i > -1) keys.splice(i, 1); },
+      clear: function() { store = Object.create(null); keys = []; },
+      key: function(i) { return keys[i] || null; },
+      get length() { return keys.length; }
+    };
+  }
+  function shimStorage(prop) {
+    try { window[prop]; return; } catch (e) {}
+    try {
+      window[prop] = createMemoryStorage();
+    } catch (e) {
+      try { Object.defineProperty(window, prop, { value: createMemoryStorage(), configurable: true }); } catch (e2) {}
+    }
+  }
+  shimStorage('localStorage');
+  shimStorage('sessionStorage');
+
   const PROXY_DOMAINS = ${JSON.stringify(allowedHosts)};
   const PROXY_BASE = '/api/proxy/';
+  // Redes de anúncio/tracking conhecidas - nunca devem carregar dentro do
+  // player, nem via <script> estático (já removido no servidor) nem via
+  // requisição dinâmica (fetch/XHR/elemento criado em runtime).
+  const AD_DOMAINS = ${JSON.stringify(AD_AND_TRACKING_DOMAINS)};
+
+  function isAdOrTrackingHost(url) {
+    try {
+      const hostname = new URL(url, window.location.href).hostname.toLowerCase();
+      return AD_DOMAINS.some(function(d) { return hostname === d || hostname.endsWith('.' + d); });
+    } catch { return false; }
+  }
 
   // URLs que devem ser bloqueadas (causam erros de CORS ou são desnecessárias)
   const BLOCKED_URLS = [
@@ -86,7 +182,7 @@ function rewriteUrlsToProxy(html: string, baseOrigin: string, allowedHosts: stri
   function shouldBlock(url) {
     if (!url) return false;
     const urlStr = url.toString().toLowerCase();
-    return BLOCKED_URLS.some(blocked => urlStr.includes(blocked));
+    return BLOCKED_URLS.some(blocked => urlStr.includes(blocked)) || isAdOrTrackingHost(urlStr);
   }
 
   function shouldProxy(url) {
@@ -107,6 +203,60 @@ function rewriteUrlsToProxy(html: string, baseOrigin: string, allowedHosts: stri
   function isHlsUrl(url) {
     return url.includes('.m3u8') || url.includes('.ts');
   }
+
+  // ------------------------------------------------------------------
+  // Bloqueio de anúncios: popups/novas abas e cliques que redirecionam
+  // para fora do player. A proteção principal é o atributo "sandbox" do
+  // <iframe> (sem allow-popups/allow-top-navigation o navegador já
+  // bloqueia isso nativamente) - o que vem abaixo é uma segunda camada,
+  // útil sobretudo quando o player não passa pelo proxy (modo "direct").
+  // ------------------------------------------------------------------
+
+  // window.open(): bloquear tudo incondicionalmente quebra o player - o
+  // próprio provedor usa uma chamada de teste (geralmente com URL vazia,
+  // tipo popup de checagem) para detectar bloqueador de popup/anúncio, e
+  // se retornar null ele recusa rodar. Em vez de anular sempre, deixamos a
+  // chamada passar de verdade e só bloqueamos quando o destino é um
+  // domínio de ads/tracking conhecido (mesma lista usada no fetch/XHR) -
+  // filtro por conteúdo (falha aberta/segura) em vez de bloqueio cego.
+  const originalWindowOpen = window.open.bind(window);
+  window.open = function(url, target, features) {
+    if (url && shouldBlock(String(url))) {
+      console.log('[Superflix Proxy] window.open bloqueado (destino de ad/tracking):', url);
+      return null;
+    }
+    return originalWindowOpen(url, target, features);
+  };
+
+  // Clique em link (ou em qualquer elemento dentro de um <a>) que abriria
+  // nova aba/janela ou navegaria para um domínio fora da lista de
+  // provedores permitidos - captura no topo, antes de handlers do próprio
+  // player, e cancela o evento.
+  document.addEventListener('click', function(e) {
+    var el = e.target;
+    while (el && el !== document) {
+      if (el.tagName === 'A') {
+        var targetAttr = (el.getAttribute('target') || '').toLowerCase();
+        var href = el.getAttribute('href') || '';
+        var opensNewContext = targetAttr === '_blank' || targetAttr === '_top' || targetAttr === '_parent';
+        var isAbsoluteHttp = /^https?:\\/\\//i.test(href);
+        if (opensNewContext || isAbsoluteHttp) {
+          var allowed = false;
+          try {
+            var host = new URL(href, window.location.href).hostname;
+            allowed = PROXY_DOMAINS.some(function(d) { return host === d || host.endsWith('.' + d); });
+          } catch {}
+          if (!allowed) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('[Superflix Proxy] Clique bloqueado (redirecionaria para fora do player):', href);
+            return false;
+          }
+        }
+      }
+      el = el.parentElement;
+    }
+  }, true);
 
   // Interceptar fetch - bloquear URLs problemáticas
   const originalFetch = window.fetch;
@@ -475,6 +625,18 @@ export async function GET(request: NextRequest) {
       html = html.replace('<head>', `<head><base href="${baseOrigin}/">`);
     }
 
+    // NOTA: já tentamos restringir script-src só aos domínios dos
+    // provedores + CDNs de confiança, mas os players de terceiros mudam de
+    // domínio/infra com muita frequência e carregam scripts de lugares que
+    // não dá pra prever de antemão - isso quebrou a reprodução (o player
+    // ficava sem carregar/aparecia 404 porque um script legítimo, não de
+    // anúncio, era bloqueado). Voltamos a liberar script-src geral e
+    // deixamos o bloqueio de anúncio/tracking por conta das camadas que
+    // não têm esse risco de falso positivo: stripAdScripts (remove só os
+    // domínios conhecidos do HTML), o interceptor no cliente (idem, só
+    // bloqueia domínios conhecidos) e o sandbox do iframe (sem
+    // allow-popups/allow-top-navigation, que é o que realmente impede o
+    // golpe de redirecionar/abrir aba - isso não depende de allowlist).
     return new NextResponse(html, {
       status: 200,
       headers: {
@@ -483,7 +645,23 @@ export async function GET(request: NextRequest) {
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': '*',
         'X-Frame-Options': 'ALLOWALL',
-        'Content-Security-Policy': "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' blob:; worker-src * blob:; style-src * 'unsafe-inline'; img-src * data: blob:; media-src * data: blob:; connect-src *; frame-src *;",
+        'Content-Security-Policy': [
+          // Mesma restrição do atributo sandbox do <iframe> reforçada aqui:
+          // sem allow-popups/allow-top-navigation* o navegador bloqueia
+          // popups e redirecionamento da página inteira (anúncios). Isso é
+          // uma allowlist de PERMISSÕES do sandbox (sempre seguro deixar
+          // restrito), diferente do script-src (allowlist de ORIGENS, que
+          // se errar quebra o player - por isso ficou permissivo acima).
+          'sandbox allow-scripts allow-presentation',
+          `default-src * 'unsafe-inline' 'unsafe-eval' data: blob:`,
+          `script-src * 'unsafe-inline' 'unsafe-eval' blob:`,
+          `worker-src * blob:`,
+          `style-src * 'unsafe-inline'`,
+          `img-src * data: blob:`,
+          `media-src * data: blob:`,
+          `connect-src *`,
+          `frame-src *`,
+        ].join('; '),
         'Cache-Control': 'no-cache',
       },
     });
