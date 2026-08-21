@@ -25,16 +25,13 @@ export interface AdminDashboard {
   watchesToday: number;
 }
 
-export interface AdminDashboardStats {
-  totalUsers: number;
-  activeUsers: number;
-  newUsersToday: number;
-  totalWatchHistory: number;
-}
-
+/** Configurações do sistema, sempre em formato "achatado" (key -> string). */
 export interface AdminSettings {
   site_name: string;
-  maintenance_mode: boolean;
+  site_description: string;
+  maintenance_mode: string; // 'true' | 'false'
+  allow_registration: string; // 'true' | 'false'
+  [key: string]: string;
 }
 
 export interface AdminUser {
@@ -45,6 +42,26 @@ export interface AdminUser {
   status: string;
   last_login: string | null;
   created_at: string;
+}
+
+export type ProviderType = 'vod' | 'tv';
+export type ProviderHealth = 'unknown' | 'healthy' | 'degraded' | 'down';
+
+export interface AdminProvider {
+  id: number;
+  type: ProviderType;
+  name: string;
+  base_url: string;
+  movie_path_template: string;
+  series_path_template: string;
+  channels_url: string | null;
+  player_base_url: string | null;
+  priority: number;
+  is_active: boolean;
+  health_status: ProviderHealth;
+  last_checked_at: string | null;
+  failure_count: number;
+  notes: string | null;
 }
 
 export interface AdminLog {

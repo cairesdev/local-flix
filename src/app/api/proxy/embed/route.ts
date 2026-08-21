@@ -1,35 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveWithCloudflare, fetchWithResolvedDNS } from '@/lib/dns-resolver';
+import { getAllowedProxyHosts } from '@/services/providers';
 
-// Dominios de embed permitidos
-const ALLOWED_EMBED_DOMAINS = [
-  'superflixapi.cv',
-  'superflixapi.run',
-  'superflixapi.buzz',
-  'superflixapi.top',
-  'embedtv.best',
-  'www1.embedtv.best',
-];
-
-// Dominios que devem ser proxied (bloqueados pelo DNS local)
-const PROXY_DOMAINS = [
-  'superflixapi.cv',
-  'superflixapi.run',
-  'superflixapi.buzz',
-  'superflixapi.top',
-  'embedtv.best',
-  'www1.embedtv.best',
-  // Dominios de stream HLS comuns
-  'cdn.superflixapi.cv',
-  'stream.superflixapi.cv',
-  'cdn.superflixapi.run',
-  'stream.superflixapi.run',
-];
-
-function isAllowedDomain(url: string): boolean {
+// A allowlist de domínios NÃO é mais fixa no código: vem dinamicamente dos
+// provedores cadastrados no painel administrativo (tabela `providers`),
+// já que os sites que hospedam os players mudam de domínio com frequência
+// por causa de bloqueios. Veja src/services/providers.ts.
+function isAllowedDomain(url: string, allowedHosts: string[]): boolean {
   try {
     const urlObj = new URL(url);
-    return ALLOWED_EMBED_DOMAINS.some(
+    return allowedHosts.some(
       (domain) => urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
     );
   } catch {
@@ -37,18 +17,11 @@ function isAllowedDomain(url: string): boolean {
   }
 }
 
-function shouldProxyUrl(url: string): boolean {
-  try {
-    const urlObj = new URL(url);
-    return PROXY_DOMAINS.some(
-      (domain) => urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
-    );
-  } catch {
-    return false;
-  }
-}
+// Mesma allowlist é usada para decidir o que deve ser reescrito para o proxy
+// (subdomínios como cdn.provedor.com já são cobertos pelo endsWith acima).
+const shouldProxyUrl = isAllowedDomain;
 
-function rewriteUrlsToProxy(html: string, baseOrigin: string): string {
+function rewriteUrlsToProxy(html: string, baseOrigin: string, allowedHosts: string[]): string {
   // Função para criar URL de proxy
   const proxyUrl = (url: string) => `/api/proxy/asset?url=${encodeURIComponent(url)}`;
 
@@ -57,7 +30,7 @@ function rewriteUrlsToProxy(html: string, baseOrigin: string): string {
   html = html.replace(
     /(src|href)=(["'])(https?:\/\/[^"']+)\2(?!\s*\+)/gi,
     (match, attr, quote, url) => {
-      if (shouldProxyUrl(url)) {
+      if (shouldProxyUrl(url, allowedHosts)) {
         return `${attr}=${quote}${proxyUrl(url)}${quote}`;
       }
       return match;
@@ -79,7 +52,7 @@ function rewriteUrlsToProxy(html: string, baseOrigin: string): string {
         absoluteUrl = baseOrigin + '/' + path;
       }
 
-      if (shouldProxyUrl(absoluteUrl)) {
+      if (shouldProxyUrl(absoluteUrl, allowedHosts)) {
         return `${attr}=${quote}${proxyUrl(absoluteUrl)}${quote}`;
       }
       return `${attr}=${quote}${absoluteUrl}${quote}`;
@@ -90,7 +63,7 @@ function rewriteUrlsToProxy(html: string, baseOrigin: string): string {
   const interceptorScript = `
 <script>
 (function() {
-  const PROXY_DOMAINS = ${JSON.stringify(PROXY_DOMAINS)};
+  const PROXY_DOMAINS = ${JSON.stringify(allowedHosts)};
   const PROXY_BASE = '/api/proxy/';
 
   // URLs que devem ser bloqueadas (causam erros de CORS ou são desnecessárias)
@@ -393,7 +366,12 @@ function rewriteUrlsToProxy(html: string, baseOrigin: string): string {
 export const dynamic = 'force-dynamic';
 
 // Função para seguir redirects com DNS customizado
-async function fetchWithRedirects(url: string, referer: string, maxRedirects = 5): Promise<{ status: number; body: string } | null> {
+async function fetchWithRedirects(
+  url: string,
+  referer: string,
+  allowedHosts: string[],
+  maxRedirects = 5
+): Promise<{ status: number; body: string } | null> {
   let currentUrl = url;
   let redirectCount = 0;
 
@@ -421,7 +399,7 @@ async function fetchWithRedirects(url: string, referer: string, maxRedirects = 5
           : new URL(result.redirect, currentUrl).href;
 
         // Verificar se o novo domínio é permitido
-        if (!isAllowedDomain(currentUrl)) {
+        if (!isAllowedDomain(currentUrl, allowedHosts)) {
           console.error(`[Proxy] Redirect para domínio não permitido: ${currentUrl}`);
           return null;
         }
@@ -452,7 +430,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'URL é obrigatória' }, { status: 400 });
   }
 
-  if (!isAllowedDomain(url)) {
+  const allowedHosts = await getAllowedProxyHosts();
+
+  if (!isAllowedDomain(url, allowedHosts)) {
     console.log('[Embed Proxy] ERRO: Domínio não permitido:', url);
     return NextResponse.json({ error: 'Domínio não permitido' }, { status: 403 });
   }
@@ -463,7 +443,7 @@ export async function GET(request: NextRequest) {
     const referer = requestReferer || `https://${request.headers.get('host') || 'superflix.app'}/`;
 
     console.log('[Embed Proxy] Buscando conteúdo com referer:', referer);
-    const result = await fetchWithRedirects(url, referer);
+    const result = await fetchWithRedirects(url, referer, allowedHosts);
 
     if (!result) {
       console.log('[Embed Proxy] ERRO: fetchWithRedirects retornou null');
@@ -488,7 +468,7 @@ export async function GET(request: NextRequest) {
     const baseOrigin = urlObj.origin;
 
     // Reescrever todas as URLs para usar o proxy
-    html = rewriteUrlsToProxy(html, baseOrigin);
+    html = rewriteUrlsToProxy(html, baseOrigin, allowedHosts);
 
     // Adicionar base tag se não existir (para recursos não capturados)
     if (!html.includes('<base')) {

@@ -10,9 +10,16 @@ export function MobileNav() {
 
   const navItems = [
     {
-      href: '/',
+      // "/" redireciona para "/tv" - TV ao vivo é o produto principal.
+      href: '/tv',
+      label: 'TV ao Vivo',
+      active: pathname === '/' || pathname === '/tv',
+      icon: Radio,
+    },
+    {
+      href: '/catalogo',
       label: 'Início',
-      active: pathname === '/',
+      active: pathname === '/catalogo',
       icon: Home,
     },
     {
@@ -26,12 +33,6 @@ export function MobileNav() {
       label: 'Séries',
       active: pathname === '/series' || pathname.startsWith('/series/'),
       icon: Tv,
-    },
-    {
-      href: '/tv',
-      label: 'TV',
-      active: pathname === '/tv',
-      icon: Radio,
     },
     {
       href: '/profile',

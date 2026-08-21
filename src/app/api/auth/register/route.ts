@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql, isOfflineMode, inMemoryData } from '@/lib/db';
 import { hashPassword, generateToken } from '@/lib/auth';
+import { env } from '@/lib/env';
+import { getBoolSetting } from '@/lib/settings';
 
 interface UserRow {
   id: number;
@@ -11,6 +13,14 @@ interface UserRow {
 
 export async function POST(request: NextRequest) {
   try {
+    const allowRegistration = await getBoolSetting('allow_registration');
+    if (!allowRegistration) {
+      return NextResponse.json(
+        { error: 'O registro público está desativado. Peça a um administrador para criar sua conta.' },
+        { status: 403 }
+      );
+    }
+
     const { email, password, name } = await request.json();
 
     if (!email || !password) {
@@ -70,12 +80,12 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Set auth_token cookie for middleware authentication
-      response.cookies.set('auth_token', token, {
+      // Set auth cookie for middleware authentication
+      response.cookies.set(env.auth.cookieName, token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: env.isProduction,
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: env.auth.cookieMaxAgeSeconds,
         path: '/',
       });
 

@@ -49,12 +49,80 @@ interface Favorite {
   added_at: Date;
 }
 
+interface Provider {
+  id: number;
+  type: 'vod' | 'tv';
+  name: string;
+  base_url: string;
+  movie_path_template: string;
+  series_path_template: string;
+  channels_url: string | null;
+  player_base_url: string | null;
+  priority: number;
+  is_active: boolean;
+  health_status: 'unknown' | 'healthy' | 'degraded' | 'down';
+  last_checked_at: Date | null;
+  failure_count: number;
+  notes: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// Seed padrão dos provedores (usado em modo offline/memória e como base do
+// schema.sql). Replica o comportamento anterior hard-coded para não
+// quebrar instalações existentes; em produção os provedores reais vêm da
+// tabela `providers` e são editáveis pelo painel administrativo.
+let providerAutoId = 1;
+function seedProviders(): Provider[] {
+  const now = new Date();
+  const make = (overrides: Partial<Provider>): Provider => ({
+    id: providerAutoId++,
+    type: 'vod',
+    name: '',
+    base_url: '',
+    movie_path_template: '/filme/{id}',
+    series_path_template: '/serie/{id}/{season}/{episode}',
+    channels_url: null,
+    player_base_url: null,
+    priority: 100,
+    is_active: true,
+    health_status: 'unknown',
+    last_checked_at: null,
+    failure_count: 0,
+    notes: null,
+    created_at: now,
+    updated_at: now,
+    ...overrides,
+  });
+
+  return [
+    make({ type: 'vod', name: 'SuperflixAPI (.cv)', base_url: 'https://superflixapi.cv', priority: 10 }),
+    make({ type: 'vod', name: 'SuperflixAPI (.run)', base_url: 'https://superflixapi.run', priority: 20 }),
+    make({ type: 'vod', name: 'SuperflixAPI (.buzz)', base_url: 'https://superflixapi.buzz', priority: 30 }),
+    make({ type: 'vod', name: 'SuperflixAPI (.top)', base_url: 'https://superflixapi.top', priority: 40 }),
+    make({
+      type: 'tv',
+      name: 'EmbedTV',
+      base_url: 'https://embedtv.lat',
+      channels_url: 'https://embedtv.lat/channels.php',
+      // Fallback apenas: cada canal já traz sua própria URL completa (campo
+      // "url" do channels.php, ex: https://ww4.embedtv.lat/24h_chaves) -
+      // canais são servidos por sub-domínios diferentes (ww1, ww4, ww5...).
+      // Como o allowlist do proxy libera "*.embedtv.lat" (ver
+      // getAllowedProxyHosts), qualquer sub-domínio funciona automaticamente.
+      player_base_url: 'https://ww1.embedtv.lat',
+      priority: 10,
+    }),
+  ];
+}
+
 // Dados em memoria para modo offline
 const inMemoryData = {
   users: [] as User[],
   watchHistory: [] as WatchHistoryItem[],
   favorites: [] as Favorite[],
   settings: new Map<string, string>(),
+  providers: seedProviders(),
 };
 
 // Pool de conexoes PostgreSQL
@@ -259,6 +327,49 @@ export async function initializeDatabase() {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_tv_history_channel_id ON tv_history(channel_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_tv_history_watched_at ON tv_history(watched_at)`);
 
+    // Tabela de provedores de vídeo (VOD e TV ao vivo) gerenciáveis via admin
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS providers (
+        id SERIAL PRIMARY KEY,
+        type VARCHAR(10) NOT NULL CHECK (type IN ('vod', 'tv')),
+        name VARCHAR(100) NOT NULL,
+        base_url VARCHAR(500) NOT NULL,
+        movie_path_template VARCHAR(255) DEFAULT '/filme/{id}',
+        series_path_template VARCHAR(255) DEFAULT '/serie/{id}/{season}/{episode}',
+        channels_url VARCHAR(500),
+        player_base_url VARCHAR(500),
+        priority INTEGER NOT NULL DEFAULT 100,
+        is_active BOOLEAN DEFAULT TRUE,
+        health_status VARCHAR(20) DEFAULT 'unknown',
+        last_checked_at TIMESTAMP,
+        failure_count INTEGER DEFAULT 0,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_providers_type_priority ON providers(type, priority)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_providers_active ON providers(is_active)`);
+
+    // Seed dos provedores padrão (só roda se a tabela estiver vazia por tipo)
+    const existingVod = await client.query(`SELECT id FROM providers WHERE type = 'vod' LIMIT 1`);
+    if (existingVod.rows.length === 0) {
+      await client.query(`
+        INSERT INTO providers (type, name, base_url, priority, is_active) VALUES
+          ('vod', 'SuperflixAPI (.cv)', 'https://superflixapi.cv', 10, TRUE),
+          ('vod', 'SuperflixAPI (.run)', 'https://superflixapi.run', 20, TRUE),
+          ('vod', 'SuperflixAPI (.buzz)', 'https://superflixapi.buzz', 30, TRUE),
+          ('vod', 'SuperflixAPI (.top)', 'https://superflixapi.top', 40, TRUE)
+      `);
+    }
+    const existingTv = await client.query(`SELECT id FROM providers WHERE type = 'tv' LIMIT 1`);
+    if (existingTv.rows.length === 0) {
+      await client.query(`
+        INSERT INTO providers (type, name, base_url, channels_url, player_base_url, priority, is_active) VALUES
+          ('tv', 'EmbedTV', 'https://embedtv.lat', 'https://embedtv.lat/channels.php', 'https://ww1.embedtv.lat', 10, TRUE)
+      `);
+    }
+
     console.log('Database tables initialized successfully');
   } finally {
     client.release();
@@ -275,4 +386,4 @@ export async function closePool() {
 
 // Exportar para uso externo
 export { isOfflineMode, inMemoryData, getPool };
-export type { User, WatchHistoryItem, Favorite, QueryResult };
+export type { User, WatchHistoryItem, Favorite, Provider, QueryResult };

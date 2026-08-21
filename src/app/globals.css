@@ -141,6 +141,14 @@
     border-bottom: 1px solid var(--glass-border);
   }
 
+  /* Glass card - painéis flutuantes (login/registro, modais, etc.) */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--glass-border);
+  }
+
   /* Skeleton loading */
   .skeleton {
     background: linear-gradient(

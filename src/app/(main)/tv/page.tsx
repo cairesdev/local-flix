@@ -652,7 +652,7 @@ function TVPlayer({
     >
       {/* Player iframe - ocupa tudo */}
       <iframe
-        src={getEmbedPlayerUrl(channel.id)}
+        src={getEmbedPlayerUrl(channel)}
         className="absolute inset-0 w-full h-full border-0"
         allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
         referrerPolicy="no-referrer-when-downgrade"

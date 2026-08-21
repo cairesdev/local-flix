@@ -1,27 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveWithCloudflare, fetchWithResolvedDNS } from '@/lib/dns-resolver';
+import { getAllowedProxyHosts } from '@/services/providers';
 
-// Dominios permitidos para HLS
-const ALLOWED_HLS_DOMAINS = [
-  'superflixapi.cv',
-  'superflixapi.run',
-  'superflixapi.buzz',
-  'superflixapi.top',
-  'embedtv.best',
-  'www1.embedtv.best',
-  'cdn.superflixapi.cv',
-  'stream.superflixapi.cv',
-  'cdn.superflixapi.run',
-  'stream.superflixapi.run',
-];
-
-// Domínios que devem ter URLs reescritas
-const PROXY_DOMAINS = ALLOWED_HLS_DOMAINS;
-
-function isAllowedDomain(url: string): boolean {
+// Domínios permitidos: dinâmicos, vindos dos provedores cadastrados no
+// admin (veja src/services/providers.ts) em vez de hard-coded.
+function isAllowedDomain(url: string, allowedHosts: string[]): boolean {
   try {
     const urlObj = new URL(url);
-    return ALLOWED_HLS_DOMAINS.some(
+    return allowedHosts.some(
       (domain) => urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
     );
   } catch {
@@ -29,18 +15,9 @@ function isAllowedDomain(url: string): boolean {
   }
 }
 
-function shouldProxyUrl(url: string): boolean {
-  try {
-    const urlObj = new URL(url);
-    return PROXY_DOMAINS.some(
-      (domain) => urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
-    );
-  } catch {
-    return false;
-  }
-}
+const shouldProxyUrl = isAllowedDomain;
 
-function rewriteM3U8(content: string, baseUrl: string): string {
+function rewriteM3U8(content: string, baseUrl: string, allowedHosts: string[]): string {
   const baseUrlObj = new URL(baseUrl);
   const lines = content.split('\n');
 
@@ -63,7 +40,7 @@ function rewriteM3U8(content: string, baseUrl: string): string {
               absoluteUrl = basePath + uri;
             }
 
-            if (shouldProxyUrl(absoluteUrl)) {
+            if (shouldProxyUrl(absoluteUrl, allowedHosts)) {
               return `URI="/api/proxy/hls?url=${encodeURIComponent(absoluteUrl)}"`;
             }
             return match;
@@ -84,7 +61,7 @@ function rewriteM3U8(content: string, baseUrl: string): string {
         absoluteUrl = basePath + trimmedLine;
       }
 
-      if (shouldProxyUrl(absoluteUrl)) {
+      if (shouldProxyUrl(absoluteUrl, allowedHosts)) {
         // Para segmentos .ts, usar o proxy de asset
         if (absoluteUrl.endsWith('.ts') || absoluteUrl.includes('.ts?')) {
           return `/api/proxy/asset?url=${encodeURIComponent(absoluteUrl)}`;
@@ -111,7 +88,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'URL é obrigatória' }, { status: 400 });
   }
 
-  if (!isAllowedDomain(url)) {
+  const allowedHosts = await getAllowedProxyHosts();
+
+  if (!isAllowedDomain(url, allowedHosts)) {
     console.log('[HLS Proxy] ERRO: Domínio não permitido:', url);
     return NextResponse.json({ error: 'Domínio não permitido' }, { status: 403 });
   }
@@ -161,7 +140,7 @@ export async function GET(request: NextRequest) {
 
     if (isM3U8) {
       // Reescrever URLs no M3U8
-      const rewrittenContent = rewriteM3U8(result.body, url);
+      const rewrittenContent = rewriteM3U8(result.body, url, allowedHosts);
 
       return new NextResponse(rewrittenContent, {
         status: 200,

@@ -5,6 +5,10 @@ export interface Channel {
   country: string;
   category: string;
   url: string;
+  /** Provedor (tabela `providers`) que originou este canal - usado para montar a URL do player. */
+  providerId?: number;
+  /** Base do player do provedor de origem (ex: https://ww1.embedtv.lat) - fallback quando o canal não traz "url" própria. */
+  playerBaseUrl?: string;
 }
 
 export interface TVFilters {

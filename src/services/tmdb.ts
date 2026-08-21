@@ -152,33 +152,7 @@ export const tmdb = {
   },
 };
 
-export const superflixApi = {
-  // URL base sem proxy
-  // Filmes: usam IMDb ID (formato: tt1234567)
-  // Séries: usam TMDB ID
-  getDirectUrl(type: 'movie' | 'tv', id: string, season?: number, episode?: number): string {
-    const baseUrl = 'https://superflixapi.cv';
-    if (type === 'movie') {
-      // Filmes precisam do IMDb ID com prefixo 'tt'
-      // Se já tem 'tt', usa diretamente; senão, assume que é TMDB ID e não vai funcionar
-      return `${baseUrl}/filme/${id}`;
-    }
-    // Séries usam TMDB ID
-    return `${baseUrl}/serie/${id}/${season}/${episode}`;
-  },
-
-  // URL com proxy para contornar bloqueios
-  getPlayerUrl(type: 'movie' | 'tv', id: string, season?: number, episode?: number, useProxy = true): string {
-    const directUrl = this.getDirectUrl(type, id, season, episode);
-
-    if (useProxy) {
-      return `/api/proxy/embed?url=${encodeURIComponent(directUrl)}`;
-    }
-
-    return directUrl;
-  },
-
-  getEmbedUrl(type: 'movie' | 'tv', id: string, season?: number, episode?: number): string {
-    return this.getPlayerUrl(type, id, season, episode);
-  },
-};
+// A antiga API `superflixApi` (com o domínio superflixapi.cv fixo) foi
+// removida. A URL de reprodução agora é resolvida dinamicamente a partir
+// dos provedores cadastrados no admin - veja src/services/providers.ts e
+// GET /api/vod/player-url, consumidos por VideoPlayer.

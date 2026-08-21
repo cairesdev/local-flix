@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAllowedProxyHosts } from '@/services/providers';
 
-// Domínios permitidos para proxy (segurança)
-const ALLOWED_DOMAINS = [
-  'superflixapi.run',
-  'superflixapi.top',
-  'embedtv.best',
-  'www1.embedtv.best',
-  'image.tmdb.org',
-];
+// Domínios estáticos além dos provedores de vídeo (não fazem parte da
+// tabela `providers` pois não são fontes de conteúdo trocáveis).
+const STATIC_ALLOWED_DOMAINS = ['image.tmdb.org'];
 
-function isAllowedDomain(url: string): boolean {
+async function isAllowedDomain(url: string): Promise<boolean> {
   try {
     const urlObj = new URL(url);
-    return ALLOWED_DOMAINS.some(domain =>
-      urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
+    const providerHosts = await getAllowedProxyHosts();
+    return [...providerHosts, ...STATIC_ALLOWED_DOMAINS].some(
+      (domain) => urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
     );
   } catch {
     return false;
@@ -33,7 +30,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Verificar se o domínio é permitido
-  if (!isAllowedDomain(url)) {
+  if (!(await isAllowedDomain(url))) {
     return NextResponse.json(
       { error: 'Domínio não permitido' },
       { status: 403 }

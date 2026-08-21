@@ -1,9 +1,15 @@
-import jwt from 'jsonwebtoken';
+import jwt, { type SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { NextRequest } from 'next/server';
+import { env } from '@/lib/env';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'superflix-secret-key-change-in-production';
-const TOKEN_EXPIRY = '7d';
+const JWT_SECRET = env.auth.jwtSecret;
+// jsonwebtoken tipa `expiresIn` como um literal restrito (ex: '7d'), não
+// `string` genérico. Como o valor vem de env (string livre), fazemos um
+// cast explícito - a validação de formato acontece em runtime na própria
+// lib caso o valor não seja válido.
+const TOKEN_EXPIRY = env.auth.jwtExpiry as SignOptions['expiresIn'];
+const COOKIE_NAME = env.auth.cookieName;
 
 export interface JWTPayload {
   userId: number;
@@ -32,9 +38,17 @@ export function verifyToken(token: string): JWTPayload | null {
 }
 
 export function getTokenFromRequest(request: NextRequest): string | null {
+  // 1) Header Authorization: Bearer <token> (usado pelo AuthContext no cliente)
   const authHeader = request.headers.get('authorization');
   if (authHeader?.startsWith('Bearer ')) {
     return authHeader.substring(7);
+  }
+  // 2) Cookie httpOnly (definido no login/registro) - permite que chamadas
+  // que não anexam o header manualmente (ex.: telas do admin) continuem
+  // autenticadas, já que o cookie sempre acompanha requests same-origin.
+  const cookieToken = request.cookies.get(COOKIE_NAME)?.value;
+  if (cookieToken) {
+    return cookieToken;
   }
   return null;
 }

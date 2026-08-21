@@ -103,29 +103,22 @@ CREATE INDEX IF NOT EXISTS idx_admin_logs_created ON admin_logs(created_at DESC)
 
 -- =============================================
 -- CONFIGURAÇÕES INICIAIS DO SISTEMA
+-- Site fechado por padrão: registro público desativado (allow_registration
+-- = false). O admin cria contas pelo painel administrativo.
 -- =============================================
 INSERT INTO system_settings (key, value, description) VALUES
     ('site_name', 'Superflix', 'Nome do site'),
-    ('site_description', 'Sua plataforma de streaming favorita', 'Descrição do site'),
+    ('site_description', 'Plataforma de streaming com foco em TV ao vivo', 'Descrição do site'),
     ('maintenance_mode', 'false', 'Modo de manutenção'),
-    ('allow_registration', 'true', 'Permitir registro de novos usuários'),
-    ('default_theme', 'dark', 'Tema padrão do site')
+    ('allow_registration', 'false', 'Permitir registro de novos usuários')
 ON CONFLICT (key) DO NOTHING;
 
 -- =============================================
--- USUÁRIO ADMIN MASTER PADRÃO
--- Email: admin@admin.com
--- Senha: 123456
--- IMPORTANTE: Altere a senha após o primeiro login!
+-- USUÁRIO ADMIN MASTER
+-- NÃO cadastramos credenciais fixas aqui: execute `npm run db:setup`
+-- (database/setup.js) com ADMIN_BOOTSTRAP_EMAIL e ADMIN_BOOTSTRAP_PASSWORD
+-- definidos no .env.local para criar/atualizar o administrador inicial.
 -- =============================================
--- A senha '123456' hasheada com bcrypt (custo 10):
--- $2a$10$N9qo8uLOickgx2ZMRZoMye.IjqQBrkHALFNIkr8i0VmNGZ3mw2K7G
-INSERT INTO users (email, name, password_hash, is_admin, status) VALUES
-    ('admin@admin.com', 'Admin Master', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjqQBrkHALFNIkr8i0VmNGZ3mw2K7G', TRUE, 'active')
-ON CONFLICT (email) DO UPDATE SET
-    password_hash = EXCLUDED.password_hash,
-    is_admin = TRUE,
-    name = EXCLUDED.name;
 
 -- =============================================
 -- FUNÇÃO: Atualizar updated_at automaticamente
@@ -189,6 +182,61 @@ CREATE TABLE IF NOT EXISTS tv_history (
 -- Indices para tv_history
 CREATE INDEX IF NOT EXISTS idx_tv_history_user ON tv_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_tv_history_watched ON tv_history(watched_at DESC);
+
+-- =============================================
+-- TABELA: providers
+-- Provedores de vídeo (VOD - filmes/séries - e TV ao vivo), gerenciados
+-- pelo painel administrativo. Os sites que fornecem os players/streams
+-- mudam de domínio com frequência (bloqueios); manter isso em banco em
+-- vez de hard-coded permite trocar/adicionar espelhos sem deploy, com
+-- fallback automático por prioridade quando um provedor falha.
+-- =============================================
+CREATE TABLE IF NOT EXISTS providers (
+    id SERIAL PRIMARY KEY,
+    type VARCHAR(10) NOT NULL CHECK (type IN ('vod', 'tv')),
+    name VARCHAR(100) NOT NULL,
+    base_url VARCHAR(500) NOT NULL,
+    -- Somente VOD: templates de URL do player. Placeholders: {base} {id} {season} {episode}
+    movie_path_template VARCHAR(255) DEFAULT '/filme/{id}',
+    series_path_template VARCHAR(255) DEFAULT '/serie/{id}/{season}/{episode}',
+    -- Somente TV: endpoint da lista de canais (JSON) e base do player por canal
+    channels_url VARCHAR(500),
+    player_base_url VARCHAR(500),
+    priority INTEGER NOT NULL DEFAULT 100,
+    is_active BOOLEAN DEFAULT TRUE,
+    health_status VARCHAR(20) DEFAULT 'unknown',
+    last_checked_at TIMESTAMP,
+    failure_count INTEGER DEFAULT 0,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_providers_type_priority ON providers(type, priority);
+CREATE INDEX IF NOT EXISTS idx_providers_active ON providers(is_active);
+
+DROP TRIGGER IF EXISTS update_providers_updated_at ON providers;
+CREATE TRIGGER update_providers_updated_at
+    BEFORE UPDATE ON providers
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Seed inicial: replica o comportamento anterior (hard-coded) para não
+-- quebrar instalações existentes. Pode ser editado livremente no admin.
+INSERT INTO providers (type, name, base_url, priority, is_active)
+SELECT * FROM (VALUES
+    ('vod', 'SuperflixAPI (.cv)', 'https://superflixapi.cv', 10, TRUE),
+    ('vod', 'SuperflixAPI (.run)', 'https://superflixapi.run', 20, TRUE),
+    ('vod', 'SuperflixAPI (.buzz)', 'https://superflixapi.buzz', 30, TRUE),
+    ('vod', 'SuperflixAPI (.top)', 'https://superflixapi.top', 40, TRUE)
+) AS seed(type, name, base_url, priority, is_active)
+WHERE NOT EXISTS (SELECT 1 FROM providers WHERE providers.type = 'vod');
+
+INSERT INTO providers (type, name, base_url, channels_url, player_base_url, priority, is_active)
+SELECT * FROM (VALUES
+    ('tv', 'EmbedTV', 'https://embedtv.lat', 'https://embedtv.lat/channels.php', 'https://ww1.embedtv.lat', 10, TRUE)
+) AS seed(type, name, base_url, channels_url, player_base_url, priority, is_active)
+WHERE NOT EXISTS (SELECT 1 FROM providers WHERE providers.type = 'tv');
 
 -- =============================================
 -- FIM DO SCHEMA

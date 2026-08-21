@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { superflixApi } from '@/services/tmdb';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { Loader2, AlertCircle, Maximize, Minimize } from 'lucide-react';
+import { Loader2, AlertCircle, Maximize, Minimize, SkipForward, RotateCw } from 'lucide-react';
 
 interface VideoPlayerProps {
   mediaType: 'movie' | 'tv';
@@ -17,6 +16,22 @@ interface VideoPlayerProps {
   className?: string;
 }
 
+interface PlayerCandidate {
+  providerId: number;
+  name: string;
+  directUrl: string;
+  proxiedUrl: string;
+}
+
+function reportOutcome(providerId: number, success: boolean) {
+  // Fire-and-forget: alimenta o health-check do provedor no admin.
+  fetch('/api/vod/player-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ providerId, success }),
+  }).catch(() => {});
+}
+
 export function VideoPlayer({
   mediaType,
   tmdbId,
@@ -24,41 +39,99 @@ export function VideoPlayer({
   season,
   episode,
   title,
-  onProgress,
-  onEnded,
   className,
 }: VideoPlayerProps) {
+  const [candidates, setCandidates] = useState<PlayerCandidate[] | null>(null);
+  const [candidateIdx, setCandidateIdx] = useState(0);
+  const [mode, setMode] = useState<'direct' | 'proxy'>('direct');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [useProxy, setUseProxy] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const reportedRef = useRef(false);
 
-  // Generate player URL - try direct first, fallback to proxy
-  const directUrl = mediaType === 'movie'
-    ? superflixApi.getDirectUrl('movie', imdbId || String(tmdbId))
-    : superflixApi.getDirectUrl('tv', String(tmdbId), season, episode);
+  const id = mediaType === 'movie' ? imdbId || String(tmdbId) : String(tmdbId);
 
-  const proxyUrl = mediaType === 'movie'
-    ? superflixApi.getPlayerUrl('movie', imdbId || String(tmdbId))
-    : superflixApi.getPlayerUrl('tv', String(tmdbId), season, episode);
-
-  const playerUrl = useProxy ? proxyUrl : directUrl;
-
+  // Buscar candidatos de provedores (ordenados por prioridade/saúde)
   useEffect(() => {
+    let cancelled = false;
     setIsLoading(true);
     setError(null);
-  }, [playerUrl, useProxy]);
+    setCandidates(null);
+    setCandidateIdx(0);
+    setMode('direct');
+
+    const params = new URLSearchParams({ mediaType, id });
+    if (season) params.set('season', String(season));
+    if (episode) params.set('episode', String(episode));
+
+    fetch(`/api/vod/player-url?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (!data.candidates || data.candidates.length === 0) {
+          setError(data.error || 'Nenhum provedor de vídeo disponível.');
+          setIsLoading(false);
+          return;
+        }
+        setCandidates(data.candidates);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError('Erro ao consultar os provedores de vídeo.');
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mediaType, id, season, episode]);
+
+  useEffect(() => {
+    reportedRef.current = false;
+  }, [candidateIdx, mode]);
+
+  const current = candidates?.[candidateIdx];
+  const playerUrl = current ? (mode === 'proxy' ? current.proxiedUrl : current.directUrl) : undefined;
 
   const handleLoad = () => {
     setIsLoading(false);
+    if (current && !reportedRef.current) {
+      reportedRef.current = true;
+      reportOutcome(current.providerId, true);
+    }
   };
 
-  const handleError = () => {
+  const goToNextProvider = useCallback(() => {
+    if (current && !reportedRef.current) {
+      reportedRef.current = true;
+      reportOutcome(current.providerId, false);
+    }
+    if (candidates && candidateIdx < candidates.length - 1) {
+      setCandidateIdx((i) => i + 1);
+      setMode('direct');
+      setIsLoading(true);
+      setError(null);
+    } else {
+      setError('Não foi possível carregar o player em nenhum provedor disponível.');
+      setIsLoading(false);
+    }
+  }, [candidates, candidateIdx, current]);
+
+  const handleError = useCallback(() => {
     setIsLoading(false);
-    setError('Erro ao carregar o player. Tente novamente.');
-  };
+    if (mode === 'direct') {
+      // Antes de descartar o provedor, tenta a rota via proxy (contorna
+      // bloqueios de rede/CORS sem precisar trocar de provedor).
+      setMode('proxy');
+      setIsLoading(true);
+      setError(null);
+      return;
+    }
+    goToNextProvider();
+  }, [mode, goToNextProvider]);
 
   const toggleFullscreen = async () => {
     if (!containerRef.current) return;
@@ -87,6 +160,8 @@ export function VideoPlayer({
     };
   }, []);
 
+  const hasMoreProviders = !!candidates && candidateIdx < candidates.length - 1;
+
   return (
     <div
       ref={containerRef}
@@ -97,7 +172,7 @@ export function VideoPlayer({
       )}
     >
       {/* Loading State */}
-      {isLoading && (
+      {isLoading && !error && (
         <div className="absolute inset-0 flex items-center justify-center bg-black">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-[var(--accent-primary)] animate-spin mx-auto mb-4" />
@@ -109,31 +184,29 @@ export function VideoPlayer({
       {/* Error State */}
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-black">
-          <div className="text-center">
+          <div className="text-center max-w-sm px-4">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <p className="text-white mb-4">{error}</p>
             <div className="flex gap-2 justify-center">
+              {hasMoreProviders && (
+                <button
+                  onClick={goToNextProvider}
+                  className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors"
+                >
+                  <SkipForward size={16} />
+                  Tentar outro servidor
+                </button>
+              )}
               <button
                 onClick={() => {
                   setError(null);
                   setIsLoading(true);
-                  // Toggle proxy mode and retry
-                  setUseProxy(!useProxy);
+                  setMode('direct');
+                  setCandidateIdx(0);
                 }}
-                className="px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
               >
-                {useProxy ? 'Tentar sem proxy' : 'Tentar com proxy'}
-              </button>
-              <button
-                onClick={() => {
-                  setError(null);
-                  setIsLoading(true);
-                  if (iframeRef.current) {
-                    iframeRef.current.src = playerUrl;
-                  }
-                }}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
-              >
+                <RotateCw size={16} />
                 Recarregar
               </button>
             </div>
@@ -142,27 +215,32 @@ export function VideoPlayer({
       )}
 
       {/* Player iframe */}
-      <iframe
-        ref={iframeRef}
-        src={playerUrl}
-        className={cn(
-          'absolute inset-0 w-full h-full',
-          (isLoading || error) && 'invisible'
-        )}
-        allowFullScreen
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        onLoad={handleLoad}
-        onError={handleError}
-      />
+      {playerUrl && (
+        <iframe
+          key={playerUrl}
+          ref={iframeRef}
+          src={playerUrl}
+          className={cn(
+            'absolute inset-0 w-full h-full',
+            (isLoading || error) && 'invisible'
+          )}
+          allowFullScreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          onLoad={handleLoad}
+          onError={handleError}
+        />
+      )}
 
       {/* Fullscreen Toggle Button */}
-      <button
-        onClick={toggleFullscreen}
-        className="absolute bottom-4 right-4 p-2 bg-black/50 rounded-lg text-white hover:bg-black/70 transition-colors z-10"
-        aria-label={isFullscreen ? 'Sair do modo tela cheia' : 'Tela cheia'}
-      >
-        {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-      </button>
+      {!isLoading && !error && (
+        <button
+          onClick={toggleFullscreen}
+          className="absolute bottom-4 right-4 p-2 bg-black/50 rounded-lg text-white hover:bg-black/70 transition-colors z-10"
+          aria-label={isFullscreen ? 'Sair do modo tela cheia' : 'Tela cheia'}
+        >
+          {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+        </button>
+      )}
 
       {/* Title Overlay */}
       {title && !isLoading && !error && (

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Poppins } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
+import { env } from '@/lib/env';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -10,11 +11,13 @@ const poppins = Poppins({
   variable: '--font-poppins',
 });
 
+// Nome/descrição vêm de env.site (NEXT_PUBLIC_SITE_NAME / _DESCRIPTION),
+// nunca hard-coded - ver src/lib/env.ts.
 export const metadata: Metadata = {
-  title: 'Superflix - Filmes, Séries e Animes',
-  description: 'Assista aos melhores filmes, séries e animes em HD. Streaming gratuito com legendas em português.',
-  keywords: ['streaming', 'filmes', 'séries', 'animes', 'assistir online', 'hd', 'legendado'],
-  authors: [{ name: 'Superflix' }],
+  title: `${env.site.name} - TV ao Vivo, Filmes e Séries`,
+  description: env.site.description,
+  keywords: ['tv ao vivo', 'streaming', 'filmes', 'séries', 'animes', 'assistir online', 'hd', 'legendado'],
+  authors: [{ name: env.site.name }],
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.ico',

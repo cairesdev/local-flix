@@ -37,12 +37,11 @@ export function Header() {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const navLinks = [
-    { href: '/', label: 'Início', active: pathname === '/' },
+    { href: '/tv', label: 'TV ao Vivo', active: pathname === '/tv' },
+    { href: '/catalogo', label: 'Início', active: pathname === '/catalogo' },
     { href: '/movies', label: 'Filmes', active: pathname === '/movies' || pathname.startsWith('/movies/') },
     { href: '/series', label: 'Séries', active: pathname === '/series' || pathname.startsWith('/series/') },
     { href: '/anime', label: 'Animes', active: pathname === '/anime' || pathname.startsWith('/anime/') },
-    { href: '/tv', label: 'TV ao Vivo', active: pathname === '/tv' },
-    { href: '/calendario', label: 'Calendário', active: pathname === '/calendario' },
   ];
 
   useEffect(() => {

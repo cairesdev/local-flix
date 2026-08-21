@@ -1,16 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Radio } from 'lucide-react';
+import { env } from '@/lib/env';
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { register } = useAuth();
   const { showToast } = useToast();
 
@@ -64,7 +74,9 @@ export default function RegisterPage() {
     try {
       await register(email, password, name);
       showToast('Conta criada com sucesso!', 'success');
-      router.push('/');
+      const redirectTo = searchParams.get('redirect');
+      const isSafeRedirect = !!redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//');
+      router.push(isSafeRedirect ? redirectTo : '/');
     } catch (error: any) {
       showToast(error.message || 'Erro ao criar conta', 'error');
     } finally {
@@ -73,12 +85,13 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="bg-[var(--bg-secondary)] rounded-xl p-8 shadow-xl">
+    <div className="glass-card rounded-2xl p-8 shadow-lg">
       {/* Logo */}
       <div className="text-center mb-8">
-        <Link href="/">
-          <h1 className="text-3xl font-bold text-[var(--accent-primary)]">
-            SUPERFLIX
+        <Link href="/" className="inline-flex items-center gap-2">
+          <Radio className="text-[var(--accent-primary)]" size={26} />
+          <h1 className="text-3xl font-bold text-[var(--accent-primary)] tracking-tight">
+            {env.site.name}
           </h1>
         </Link>
         <p className="text-[var(--text-secondary)] mt-2">
@@ -147,7 +160,11 @@ export default function RegisterPage() {
         <p className="text-[var(--text-secondary)]">
           Já tem uma conta?{' '}
           <Link
-            href="/login"
+            href={
+              searchParams.get('redirect')
+                ? `/login?redirect=${encodeURIComponent(searchParams.get('redirect')!)}`
+                : '/login'
+            }
             className="text-[var(--accent-primary)] hover:underline"
           >
             Fazer login

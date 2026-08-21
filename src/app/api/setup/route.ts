@@ -1,97 +1,95 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query, initializeDatabase } from '@/lib/db';
-import bcrypt from 'bcryptjs';
+import { query, initializeDatabase, isOfflineMode } from '@/lib/db';
+import { hashPassword } from '@/lib/auth';
+import { env } from '@/lib/env';
+import { setSettings } from '@/lib/settings';
 
-// Chave secreta para proteger o endpoint
-const SETUP_SECRET = 'superflix-setup-2024';
+/**
+ * Endpoint de setup remoto - usado para inicializar tabelas e o
+ * administrador master em ambientes onde não é possível rodar
+ * `npm run db:setup` diretamente (ex.: alguns hosts serverless).
+ *
+ * Fica DESATIVADO por padrão (responde 404). Só funciona se a variável de
+ * ambiente SETUP_SECRET estiver definida, e mesmo assim exige que o
+ * segredo seja enviado no header `x-setup-secret` (nunca na query string,
+ * para não vazar em logs de acesso/referrer). Depois de usar, remova
+ * SETUP_SECRET do ambiente para desativar o endpoint novamente.
+ *
+ * As credenciais do admin master vêm de ADMIN_BOOTSTRAP_EMAIL e
+ * ADMIN_BOOTSTRAP_PASSWORD - nunca hard-coded no código.
+ */
+export async function POST(request: NextRequest) {
+  if (!env.setup.secret) {
+    // Endpoint desativado - não revela nem que existe.
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
 
-export async function GET(request: NextRequest) {
-  // Verificar chave de segurança
-  const secret = request.nextUrl.searchParams.get('secret');
-
-  if (secret !== SETUP_SECRET) {
-    return NextResponse.json(
-      { error: 'Acesso não autorizado' },
-      { status: 401 }
-    );
+  const providedSecret = request.headers.get('x-setup-secret');
+  if (!providedSecret || providedSecret !== env.setup.secret) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
   const logs: string[] = [];
 
   try {
-    logs.push('🚀 Iniciando configuração do banco de dados...');
+    logs.push('Iniciando configuração do banco de dados...');
 
-    // 1. Inicializar tabelas
+    if (isOfflineMode) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'POSTGRES_URL não configurada - nada para inicializar (modo memória).',
+          logs,
+        },
+        { status: 400 }
+      );
+    }
+
     await initializeDatabase();
-    logs.push('✅ Tabelas criadas');
+    logs.push('Tabelas criadas/verificadas.');
 
-    // 2. Inserir configurações do sistema
-    await query(`
-      INSERT INTO system_settings (key, value, description) VALUES
-        ('site_name', 'Superflix', 'Nome do site'),
-        ('site_description', 'Sua plataforma de streaming favorita', 'Descrição do site'),
-        ('maintenance_mode', 'false', 'Modo de manutenção'),
-        ('allow_registration', 'true', 'Permitir registro de novos usuários'),
-        ('default_theme', 'dark', 'Tema padrão do site')
-      ON CONFLICT (key) DO NOTHING
-    `);
-    logs.push('✅ Configurações do sistema inseridas');
+    await setSettings({}); // garante que os defaults fiquem visíveis via getSettings()
+    logs.push('Configurações padrão do sistema verificadas.');
 
-    // 3. Criar usuário admin
-    const adminEmail = 'matheusnattan8@gmail.com';
-    const adminPassword = 'Adm1478@';
-    const adminName = 'Administrador';
+    if (!env.adminBootstrap.email || !env.adminBootstrap.password) {
+      logs.push(
+        'ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD não definidos - nenhum admin foi criado. ' +
+          'Defina essas variáveis e chame o endpoint novamente, ou crie o primeiro admin manualmente no banco.'
+      );
+      return NextResponse.json({ success: true, message: 'Setup parcial concluído.', logs });
+    }
 
     const existingAdmin = await query<{ id: number }>(
       'SELECT id FROM users WHERE email = $1',
-      [adminEmail]
+      [env.adminBootstrap.email]
     );
 
-    if (existingAdmin.rows.length > 0) {
-      logs.push('⚠️ Usuário admin já existe, atualizando...');
+    const passwordHash = await hashPassword(env.adminBootstrap.password);
 
-      const passwordHash = await bcrypt.hash(adminPassword, 10);
+    if (existingAdmin.rows.length > 0) {
       await query(
-        'UPDATE users SET password_hash = $1, is_admin = TRUE, name = $2 WHERE email = $3',
-        [passwordHash, adminName, adminEmail]
+        'UPDATE users SET password_hash = $1, is_admin = TRUE, name = $2, status = $3 WHERE email = $4',
+        [passwordHash, env.adminBootstrap.name, 'active', env.adminBootstrap.email]
       );
-      logs.push('✅ Usuário admin atualizado');
+      logs.push('Administrador existente atualizado.');
     } else {
-      const passwordHash = await bcrypt.hash(adminPassword, 10);
       await query(
         `INSERT INTO users (email, name, password_hash, is_admin, status)
          VALUES ($1, $2, $3, TRUE, 'active')`,
-        [adminEmail, adminName, passwordHash]
+        [env.adminBootstrap.email, env.adminBootstrap.name, passwordHash]
       );
-      logs.push('✅ Usuário admin criado');
+      logs.push('Administrador criado.');
     }
 
-    logs.push('');
-    logs.push('🎉 SETUP CONCLUÍDO COM SUCESSO!');
-    logs.push('');
-    logs.push('📋 Credenciais do Admin:');
-    logs.push('   Email: matheusnattan8@gmail.com');
-    logs.push('   Senha: Adm1478@');
+    logs.push('Setup concluído com sucesso. As credenciais não são retornadas nesta resposta.');
 
-    return NextResponse.json({
-      success: true,
-      message: 'Banco de dados configurado com sucesso!',
-      logs,
-      admin: {
-        email: 'matheusnattan8@gmail.com',
-        password: 'Adm1478@',
-      },
-    });
+    return NextResponse.json({ success: true, message: 'Banco de dados configurado com sucesso.', logs });
   } catch (error) {
     console.error('Erro no setup:', error);
-    logs.push(`❌ ERRO: ${error}`);
+    logs.push(`ERRO: ${error}`);
 
     return NextResponse.json(
-      {
-        success: false,
-        error: String(error),
-        logs,
-      },
+      { success: false, error: 'Erro ao configurar o banco de dados.', logs },
       { status: 500 }
     );
   }

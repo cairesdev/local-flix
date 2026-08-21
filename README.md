@@ -34,16 +34,20 @@
 
 ## 🎯 Sobre o Projeto
 
-O **Superflix** é uma plataforma de streaming moderna desenvolvida em **Next.js 16** que permite assistir filmes, séries, animes e TV ao vivo. O projeto utiliza a API do **TMDB** para metadados e a **SuperflixAPI** para reprodução de conteúdo.
+O **Superflix** é uma plataforma de streaming moderna desenvolvida em **Next.js 16**, com **TV ao vivo como produto principal** (a raiz do site abre direto na TV) além de filmes, séries e animes. O projeto utiliza a API do **TMDB** para metadados; a reprodução de vídeo (TV e VOD) usa **provedores de terceiros geridos pelo painel admin**, com fallback automático entre espelhos - nenhum domínio de player fica fixo no código.
+
+Por padrão, o site é **fechado**: toda a aplicação exige login, não só as áreas de perfil/admin.
 
 > **Criado por [@TheusNattan](https://github.com/TheusN)** - Desenvolvedor apaixonado por criar experiências incríveis.
 
 ### Por que Superflix?
 
 - 🆓 **100% Gratuito** - Sem assinaturas, sem cobranças
+- 📺 **TV ao Vivo em Primeiro Lugar** - a experiência principal da plataforma
 - 🚀 **Super Rápido** - Otimizado com Next.js 16 e Turbopack
 - 📱 **Responsivo** - Funciona perfeitamente em qualquer dispositivo
 - 🌙 **Dark Mode** - Interface elegante e confortável
+- 🔐 **Acesso Controlado** - site fechado por padrão, com painel admin completo
 - 🔒 **Open Source** - Código aberto para a comunidade
 
 ---
@@ -51,20 +55,20 @@ O **Superflix** é uma plataforma de streaming moderna desenvolvida em **Next.js
 ## ✨ Features
 
 ### 🎬 Conteúdo
-- **Filmes** - Catálogo completo com milhares de títulos
+- **TV ao Vivo** - Canais brasileiros em tempo real, produto principal (`/` → `/tv`)
+- **Filmes** - Catálogo completo com milhares de títulos (`/catalogo`)
 - **Séries** - Episódios organizados por temporada
 - **Animes** - Seção dedicada para fãs de anime
-- **TV ao Vivo** - Canais brasileiros em tempo real
 
 ### 🛠️ Funcionalidades
 - 🔍 **Busca Inteligente** - Encontre qualquer conteúdo rapidamente
-- 📅 **Calendário de Lançamentos** - Acompanhe novos episódios
-- ❤️ **Favoritos** - Salve seus conteúdos preferidos
+- ❤️ **Favoritos** - Salve seus conteúdos preferidos (incluindo canais de TV)
 - 📊 **Histórico** - Continue de onde parou
-- 👤 **Sistema de Contas** - Perfis personalizados
-- 🔐 **Painel Admin** - Gerencie a plataforma
+- 👤 **Sistema de Contas** - Perfis personalizados, site fechado (login obrigatório)
+- 🔐 **Painel Admin Completo** - usuários, provedores de vídeo, configurações e logs de auditoria
 
 ### ⚡ Tecnologia
+- **Sistema de Provedores** - fallback automático entre espelhos de vídeo (VOD e TV), com health-check, prioridade e gestão via painel admin
 - **Proxy Inteligente** - Bypass de restrições com DNS over HTTPS
 - **HLS Streaming** - Reprodução suave e adaptativa
 - **Cache Otimizado** - Carregamento ultra-rápido
@@ -74,7 +78,7 @@ O **Superflix** é uma plataforma de streaming moderna desenvolvida em **Next.js
 
 ## 🌐 Demo
 
-Acesse a versão live do Superflix:
+O link abaixo é do projeto original (upstream); ele pode não refletir esta versão, que roda **fechada por padrão** (`REQUIRE_LOGIN_FOR_ACCESS=true`) - qualquer instância sua exigirá login em todas as páginas, inclusive a TV ao vivo.
 
 ### 👉 [superflix.omniwhats.com](https://superflix.omniwhats.com/)
 
@@ -116,12 +120,22 @@ Edite o arquivo `.env.local`:
 # OBRIGATÓRIO - Pegue sua chave em: https://www.themoviedb.org/settings/api
 NEXT_PUBLIC_TMDB_API_KEY=sua_chave_tmdb_aqui
 
-# OPCIONAL - Banco de dados (sem isso, usa memória)
+# OBRIGATÓRIO em produção - Banco de dados (sem isso, usa memória)
 POSTGRES_URL=postgres://usuario:senha@host:5432/database
 
-# OPCIONAL - Segredo para JWT (tem valor padrão para dev)
+# OBRIGATÓRIO em produção - Segredo para JWT (tem fallback só para dev)
 JWT_SECRET=seu_segredo_super_secreto
+
+# Recomendado na primeira instalação - cria a conta admin inicial
+ADMIN_BOOTSTRAP_EMAIL=voce@exemplo.com
+ADMIN_BOOTSTRAP_PASSWORD=uma_senha_forte
+
+# O site é fechado por padrão (login obrigatório em qualquer página) -
+# só desative em ambientes de demonstração
+REQUIRE_LOGIN_FOR_ACCESS=true
 ```
+
+Veja o [`.env.example`](.env.example) para a lista completa e comentada de todas as variáveis (proxy, provedores, cookies, branding, etc).
 
 > ⚠️ **IMPORTANTE:** Nunca compartilhe seu arquivo `.env.local` ou faça commit dele no Git!
 
@@ -299,12 +313,14 @@ Usamos [Conventional Commits](https://www.conventionalcommits.org/):
 | API | Descrição |
 |-----|-----------|
 | **TMDB** | Metadados de filmes/séries (posters, sinopses, etc) |
-| **SuperflixAPI** | Reprodução de conteúdo via embed |
-| **EmbedTV** | Canais de TV ao vivo |
+| **Provedores de vídeo (VOD/TV)** | Reprodução via embed - domínios cadastrados e geridos pelo painel admin (aba Provedores), não fixos no código |
 
-### Sistema de Proxy
+### Sistema de Provedores + Proxy
 
-O Superflix utiliza um sistema inteligente de proxy para contornar restrições:
+Os sites que hospedam os players mudam de domínio com frequência por bloqueio. O Superflix resolve isso com dois mecanismos combinados:
+
+1. **Provedores com fallback** - cada canal de TV ou título de filme/série tenta uma lista de espelhos em ordem de prioridade (cadastrados no painel admin), pulando automaticamente para o próximo quando um está fora do ar.
+2. **Proxy inteligente** - contorna bloqueios de rede/DNS locais:
 
 ```
 Cliente → Next.js API → DNS over HTTPS (Cloudflare) → Conteúdo
@@ -365,6 +381,7 @@ Veja mais detalhes em [database/README.md](database/README.md)
 | `favorites` | Favoritos de filmes e series |
 | `tv_favorites` | Canais de TV favoritos |
 | `tv_history` | Historico de canais assistidos |
+| `providers` | Provedores de video (VOD/TV) com prioridade e health-check |
 | `system_settings` | Configuracoes do sistema |
 | `admin_logs` | Logs de acoes administrativas |
 
@@ -429,6 +446,8 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 | `NEXT_PUBLIC_TMDB_API_KEY` | Sim | Chave da API TMDB |
 | `POSTGRES_URL` | Sim | URL de conexao PostgreSQL |
 | `JWT_SECRET` | Sim | Segredo para tokens JWT (min. 32 caracteres) |
+| `ADMIN_BOOTSTRAP_EMAIL` / `ADMIN_BOOTSTRAP_PASSWORD` | Recomendado | Cria a conta admin inicial no primeiro `npm run db:setup` |
+| `REQUIRE_LOGIN_FOR_ACCESS` | Nao (padrao `true`) | Site fechado - exige login em todas as paginas |
 
 ### Outras Plataformas
 

@@ -1,10 +1,14 @@
-// TMDB API
-export const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY || '';
-export const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
-export const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
+import { env } from '@/lib/env';
 
-// SuperflixAPI
-export const SUPERFLIX_API_URL = 'https://superflixapi.cv';
+// TMDB API (lido de src/lib/env.ts - nunca hard-code aqui)
+export const TMDB_API_KEY = env.tmdb.apiKey;
+export const TMDB_BASE_URL = env.tmdb.baseUrl;
+export const TMDB_IMAGE_BASE = env.tmdb.imageBaseUrl;
+
+// Provedores de vídeo (filmes/séries e TV ao vivo) não são mais fixos no
+// código-fonte: são gerenciados via painel administrativo (tabela
+// `providers`, com fallback automático entre eles). Veja
+// src/services/providers.ts. O antigo SUPERFLIX_API_URL fixo foi removido.
 
 // Image sizes
 export const IMAGE_SIZES = {

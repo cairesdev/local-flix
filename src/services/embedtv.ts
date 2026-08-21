@@ -1,89 +1,59 @@
 import type { Channel } from '@/types/tv';
 
-interface EmbedTVCategory {
-  id: number;
-  name: string;
-}
-
-interface EmbedTVChannel {
-  id: string;
-  name: string;
-  image: string;
-  categories: number[];
-  url: string;
-}
-
-interface EmbedTVResponse {
-  categories: EmbedTVCategory[];
-  channels: EmbedTVChannel[];
-}
-
-// Cache para evitar requests desnecessários
+// Cache para evitar requests desnecessários no cliente
 let cachedData: { channels: Channel[]; categories: string[] } | null = null;
 let cacheTime = 0;
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutos
 
+/**
+ * Busca a lista de canais de TV ao vivo via API interna. A lógica de
+ * fallback entre provedores (quando um mirror é bloqueado) acontece no
+ * servidor - veja src/services/providers.ts e /api/tv/channels.
+ */
 export async function fetchEmbedTVChannels(): Promise<{ channels: Channel[]; categories: string[] }> {
-  // Retornar cache se ainda válido
   if (cachedData && Date.now() - cacheTime < CACHE_TTL) {
     return cachedData;
   }
 
-  // Usar API route interna para evitar CORS
   const response = await fetch('/api/tv/channels');
 
   if (!response.ok) {
     throw new Error(`Erro ao carregar canais: ${response.status}`);
   }
 
-  const data: EmbedTVResponse = await response.json();
+  const data: { channels: Channel[]; categories: string[] } = await response.json();
 
-  // Criar mapa de categorias
-  const categoryMap = new Map<number, string>();
-  data.categories.forEach(cat => {
-    categoryMap.set(cat.id, cat.name);
-  });
-
-  // Converter para formato interno
-  const channels: Channel[] = data.channels.map(ch => {
-    // Pegar a categoria principal (excluindo "Todos" que é id 0)
-    const categoryIds = ch.categories.filter(id => id !== 0);
-    const category = categoryIds.length > 0
-      ? categoryMap.get(categoryIds[0]) || 'Outros'
-      : 'Outros';
-
-    return {
-      id: ch.id,
-      name: ch.name,
-      logo: ch.image,
-      country: 'Brasil',
-      category,
-      url: ch.url,
-    };
-  });
-
-  // Extrair categorias únicas (excluindo "Todos")
-  const categories = data.categories
-    .filter(cat => cat.id !== 0)
-    .map(cat => cat.name)
-    .sort();
-
-  cachedData = { channels, categories };
+  cachedData = { channels: data.channels || [], categories: data.categories || [] };
   cacheTime = Date.now();
 
-  return { channels, categories };
+  return cachedData;
 }
 
-export function getEmbedPlayerUrl(channelId: string, useProxy = true): string {
-  // URL correta: www1.embedtv.best/{channelId} (não player.php)
-  const baseUrl = `https://www1.embedtv.best/${channelId}`;
+/**
+ * URL do player (via proxy) para um canal.
+ *
+ * Prioridade:
+ * 1. `channel.url` - URL completa que o próprio provedor já retorna no
+ *    channels.php para aquele canal específico. Provedores como o EmbedTV
+ *    distribuem os canais entre vários sub-domínios (ex: ww1, ww4, ww5...),
+ *    então cada canal pode ter um host diferente - usar essa URL exata
+ *    evita tentar montar o endereço errado.
+ * 2. `channel.playerBaseUrl` + `channel.id` - fallback quando o provedor
+ *    não informou uma URL por canal (formato mais simples/antigo).
+ * 3. Último recurso fixo, só para nunca quebrar com dados incompletos.
+ */
+export function getEmbedPlayerUrl(
+  channel: Pick<Channel, 'id' | 'url' | 'playerBaseUrl'>,
+  useProxy = true
+): string {
+  const targetUrl =
+    channel.url || `${channel.playerBaseUrl || 'https://ww1.embedtv.lat'}/${channel.id}`;
 
   if (useProxy) {
-    // Usar proxy para contornar bloqueios de rede
-    return `/api/proxy/embed?url=${encodeURIComponent(baseUrl)}`;
+    return `/api/proxy/embed?url=${encodeURIComponent(targetUrl)}`;
   }
 
-  return baseUrl;
+  return targetUrl;
 }
 
 export function clearEmbedTVCache(): void {

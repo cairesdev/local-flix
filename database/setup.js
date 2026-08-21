@@ -145,56 +145,110 @@ async function setup() {
     `);
     console.log('  ✅ Tabela tv_history criada');
 
-    // 9. Inserir configurações do sistema
+    // 8. Criar tabela providers (provedores de vídeo gerenciáveis)
+    console.log('📦 Criando tabela providers...');
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS providers (
+        id SERIAL PRIMARY KEY,
+        type VARCHAR(10) NOT NULL CHECK (type IN ('vod', 'tv')),
+        name VARCHAR(100) NOT NULL,
+        base_url VARCHAR(500) NOT NULL,
+        movie_path_template VARCHAR(255) DEFAULT '/filme/{id}',
+        series_path_template VARCHAR(255) DEFAULT '/serie/{id}/{season}/{episode}',
+        channels_url VARCHAR(500),
+        player_base_url VARCHAR(500),
+        priority INTEGER NOT NULL DEFAULT 100,
+        is_active BOOLEAN DEFAULT TRUE,
+        health_status VARCHAR(20) DEFAULT 'unknown',
+        last_checked_at TIMESTAMP,
+        failure_count INTEGER DEFAULT 0,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_providers_type_priority ON providers(type, priority)`);
+    console.log('  ✅ Tabela providers criada');
+
+    // 9. Inserir configurações do sistema (site fechado por padrão)
     console.log('\n⚙️ Inserindo configurações do sistema...');
     await client.query(`
       INSERT INTO system_settings (key, value, description) VALUES
         ('site_name', 'Superflix', 'Nome do site'),
-        ('site_description', 'Sua plataforma de streaming favorita', 'Descrição do site'),
+        ('site_description', 'Plataforma de streaming com foco em TV ao vivo', 'Descrição do site'),
         ('maintenance_mode', 'false', 'Modo de manutenção'),
-        ('allow_registration', 'true', 'Permitir registro de novos usuários'),
-        ('default_theme', 'dark', 'Tema padrão do site')
+        ('allow_registration', 'false', 'Permitir registro de novos usuários')
       ON CONFLICT (key) DO NOTHING
     `);
     console.log('  ✅ Configurações inseridas');
 
-    // 10. Criar usuario admin master padrao
-    console.log('\nCriando usuario administrador master...');
-
-    const adminMasterEmail = 'matheusnattan8@gmail.com';
-    const adminMasterPassword = 'Adm1478@';
-    const adminMasterName = 'Matheus Nattan';
-
-    const existingAdminMaster = await client.query(
-      'SELECT id FROM users WHERE email = $1',
-      [adminMasterEmail]
-    );
-
-    const passwordHashMaster = await bcrypt.hash(adminMasterPassword, 10);
-
-    if (existingAdminMaster.rows.length > 0) {
-      console.log('  ⚠️ Admin Master já existe, atualizando...');
-      await client.query(
-        'UPDATE users SET password_hash = $1, is_admin = TRUE, name = $2 WHERE email = $3',
-        [passwordHashMaster, adminMasterName, adminMasterEmail]
-      );
-      console.log('  ✅ Admin Master atualizado');
+    // 10. Seed dos provedores padrão (replica o comportamento anterior)
+    console.log('\n📡 Verificando provedores padrão...');
+    const existingVodProviders = await client.query(`SELECT id FROM providers WHERE type = 'vod' LIMIT 1`);
+    if (existingVodProviders.rows.length === 0) {
+      await client.query(`
+        INSERT INTO providers (type, name, base_url, priority, is_active) VALUES
+          ('vod', 'SuperflixAPI (.cv)', 'https://superflixapi.cv', 10, TRUE),
+          ('vod', 'SuperflixAPI (.run)', 'https://superflixapi.run', 20, TRUE),
+          ('vod', 'SuperflixAPI (.buzz)', 'https://superflixapi.buzz', 30, TRUE),
+          ('vod', 'SuperflixAPI (.top)', 'https://superflixapi.top', 40, TRUE)
+      `);
+      console.log('  ✅ Provedores VOD padrão criados');
     } else {
-      await client.query(
-        `INSERT INTO users (email, name, password_hash, is_admin, status)
-         VALUES ($1, $2, $3, TRUE, 'active')`,
-        [adminMasterEmail, adminMasterName, passwordHashMaster]
+      console.log('  ℹ️ Provedores VOD já existem, mantidos como estão');
+    }
+    const existingTvProviders = await client.query(`SELECT id FROM providers WHERE type = 'tv' LIMIT 1`);
+    if (existingTvProviders.rows.length === 0) {
+      await client.query(`
+        INSERT INTO providers (type, name, base_url, channels_url, player_base_url, priority, is_active) VALUES
+          ('tv', 'EmbedTV', 'https://embedtv.lat', 'https://embedtv.lat/channels.php', 'https://ww1.embedtv.lat', 10, TRUE)
+      `);
+      console.log('  ✅ Provedor de TV ao vivo padrão criado');
+    } else {
+      console.log('  ℹ️ Provedores de TV já existem, mantidos como estão');
+    }
+
+    // 11. Criar usuario admin master a partir de variaveis de ambiente
+    console.log('\nVerificando usuario administrador master...');
+
+    const adminMasterEmail = process.env.ADMIN_BOOTSTRAP_EMAIL;
+    const adminMasterPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+    const adminMasterName = process.env.ADMIN_BOOTSTRAP_NAME || 'Administrador';
+
+    if (!adminMasterEmail || !adminMasterPassword) {
+      console.log('  ⚠️ ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD não definidos em .env.local.');
+      console.log('     Nenhum administrador foi criado automaticamente. Defina essas variáveis e rode');
+      console.log('     "npm run db:setup" novamente para criar o admin master.');
+    } else {
+      const existingAdminMaster = await client.query(
+        'SELECT id FROM users WHERE email = $1',
+        [adminMasterEmail]
       );
-      console.log('  ✅ Admin Master criado');
+
+      const passwordHashMaster = await bcrypt.hash(adminMasterPassword, 10);
+
+      if (existingAdminMaster.rows.length > 0) {
+        console.log('  ⚠️ Admin Master já existe, atualizando...');
+        await client.query(
+          'UPDATE users SET password_hash = $1, is_admin = TRUE, name = $2, status = $3 WHERE email = $4',
+          [passwordHashMaster, adminMasterName, 'active', adminMasterEmail]
+        );
+        console.log('  ✅ Admin Master atualizado');
+      } else {
+        await client.query(
+          `INSERT INTO users (email, name, password_hash, is_admin, status)
+           VALUES ($1, $2, $3, TRUE, 'active')`,
+          [adminMasterEmail, adminMasterName, passwordHashMaster]
+        );
+        console.log('  ✅ Admin Master criado');
+      }
+      console.log(`  📋 Email do Admin Master: ${adminMasterEmail}`);
+      console.log('  🔑 Senha: a definida em ADMIN_BOOTSTRAP_PASSWORD (não exibida no log)');
     }
 
     console.log('\n🎉 ================================');
     console.log('   SETUP CONCLUÍDO COM SUCESSO!');
     console.log('================================\n');
-    console.log('📋 Credenciais do Admin Master:');
-    console.log(`   Email: ${adminMasterEmail}`);
-    console.log(`   Senha: ${adminMasterPassword}`);
-    console.log('\n⚠️  IMPORTANTE: Altere a senha após o primeiro login!');
 
   } catch (error) {
     console.error('\n❌ Erro:', error.message);

@@ -1,16 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Radio } from 'lucide-react';
+import { env } from '@/lib/env';
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const { showToast } = useToast();
 
@@ -49,7 +59,11 @@ export default function LoginPage() {
     try {
       await login(email, password);
       showToast('Login realizado com sucesso!', 'success');
-      router.push('/');
+      // Volta para a página que o usuário tentou acessar antes do redirect
+      // do middleware (site fechado exige login em qualquer rota).
+      const redirectTo = searchParams.get('redirect');
+      const isSafeRedirect = !!redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//');
+      router.push(isSafeRedirect ? redirectTo : '/');
     } catch (error: any) {
       showToast(error.message || 'Erro ao fazer login', 'error');
     } finally {
@@ -58,12 +72,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="bg-[var(--bg-secondary)] rounded-xl p-8 shadow-xl">
+    <div className="glass-card rounded-2xl p-8 shadow-lg">
       {/* Logo */}
       <div className="text-center mb-8">
-        <Link href="/">
-          <h1 className="text-3xl font-bold text-[var(--accent-primary)]">
-            SUPERFLIX
+        <Link href="/" className="inline-flex items-center gap-2">
+          <Radio className="text-[var(--accent-primary)]" size={26} />
+          <h1 className="text-3xl font-bold text-[var(--accent-primary)] tracking-tight">
+            {env.site.name}
           </h1>
         </Link>
         <p className="text-[var(--text-secondary)] mt-2">
@@ -112,7 +127,11 @@ export default function LoginPage() {
         <p className="text-[var(--text-secondary)]">
           Não tem uma conta?{' '}
           <Link
-            href="/register"
+            href={
+              searchParams.get('redirect')
+                ? `/register?redirect=${encodeURIComponent(searchParams.get('redirect')!)}`
+                : '/register'
+            }
             className="text-[var(--accent-primary)] hover:underline"
           >
             Criar conta

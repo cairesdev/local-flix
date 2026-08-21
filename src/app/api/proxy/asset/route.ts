@@ -1,35 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveWithCloudflare, fetchWithResolvedDNS } from '@/lib/dns-resolver';
+import { getAllowedProxyHosts } from '@/services/providers';
 
-// Dominios permitidos para assets
-const ALLOWED_ASSET_DOMAINS = [
-  'superflixapi.cv',
-  'superflixapi.run',
-  'superflixapi.buzz',
-  'superflixapi.top',
-  'embedtv.best',
-  'www1.embedtv.best',
-  // Subdominios de stream
-  'cdn.superflixapi.cv',
-  'stream.superflixapi.cv',
-  'cdn.superflixapi.run',
-  'stream.superflixapi.run',
-  'cdn.embedtv.best',
-  'stream.embedtv.best',
-  // CDNs comuns usados pelos players
+// CDNs genéricos de infraestrutura (não são "provedores de conteúdo",
+// então continuam fixos aqui) usados pelos players para carregar libs/HLS.
+const TRUSTED_CDN_DOMAINS = [
   'cdn.jsdelivr.net',
   'cdnjs.cloudflare.com',
   'unpkg.com',
-  // CDNs de video/stream comuns
   'akamaihd.net',
   'cloudfront.net',
   'fastly.net',
 ];
 
-function isAllowedDomain(url: string): boolean {
+function isAllowedDomain(url: string, allowedHosts: string[]): boolean {
   try {
     const urlObj = new URL(url);
-    return ALLOWED_ASSET_DOMAINS.some(
+    return [...allowedHosts, ...TRUSTED_CDN_DOMAINS].some(
       (domain) => urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
     );
   } catch {
@@ -53,7 +40,7 @@ export async function GET(request: NextRequest) {
   // Para CDNs públicos, tentar fetch normal primeiro
   const urlObj = new URL(url);
   const isCDN = ['cdn.jsdelivr.net', 'cdnjs.cloudflare.com', 'unpkg.com'].some(
-    cdn => urlObj.hostname === cdn || urlObj.hostname.endsWith('.' + cdn)
+    (cdn) => urlObj.hostname === cdn || urlObj.hostname.endsWith('.' + cdn)
   );
 
   if (isCDN) {
@@ -82,7 +69,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  if (!isAllowedDomain(url)) {
+  const allowedHosts = await getAllowedProxyHosts();
+
+  if (!isAllowedDomain(url, allowedHosts)) {
     console.log('[Asset Proxy] ERRO: Domínio não permitido:', url);
     return NextResponse.json({ error: 'Domínio não permitido' }, { status: 403 });
   }
