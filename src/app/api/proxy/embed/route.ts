@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { resolveWithCloudflare, fetchWithResolvedDNS } from '@/lib/dns-resolver';
-import { getAllowedProxyHosts } from '@/services/providers';
+import { NextRequest, NextResponse } from "next/server";
+import {
+  resolveWithCloudflare,
+  fetchWithResolvedDNS,
+} from "@/lib/dns-resolver";
+import { getAllowedProxyHosts } from "@/services/providers";
 
 // A allowlist de domínios NÃO é mais fixa no código: vem dinamicamente dos
 // provedores cadastrados no painel administrativo (tabela `providers`),
@@ -10,7 +13,8 @@ function isAllowedDomain(url: string, allowedHosts: string[]): boolean {
   try {
     const urlObj = new URL(url);
     return allowedHosts.some(
-      (domain) => urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
+      (domain) =>
+        urlObj.hostname === domain || urlObj.hostname.endsWith("." + domain),
     );
   } catch {
     return false;
@@ -30,27 +34,60 @@ const shouldProxyUrl = isAllowedDomain;
 // requisições dinâmicas para elas (interceptor no cliente).
 const AD_AND_TRACKING_DOMAINS = [
   // Redes de popunder/push comuns em sites de streaming "pirata"
-  'popads.net', 'popcash.net', 'poprevenue.com', 'propellerads.com',
-  'propellerapi.com', 'adsterra.com', 'a-ads.com', 'exoclick.com',
-  'juicyads.com', 'mgid.com', 'clickadu.com', 'hilltopads.net',
-  'adcash.com', 'smartyads.com', 'richads.com', 'onclickalgo.com',
-  'yllix.com', 'bidvertiser.com', 'adskeeper.co.uk', 'trafficjunky.net',
-  'adprovider.io', 'galaksion.com', 'clickaine.com', 'monetag.com',
-  'onesignal.com', 'pushnami.com', 'adnxs.com',
+  "popads.net",
+  "popcash.net",
+  "poprevenue.com",
+  "propellerads.com",
+  "propellerapi.com",
+  "adsterra.com",
+  "a-ads.com",
+  "exoclick.com",
+  "juicyads.com",
+  "mgid.com",
+  "clickadu.com",
+  "hilltopads.net",
+  "adcash.com",
+  "smartyads.com",
+  "richads.com",
+  "onclickalgo.com",
+  "yllix.com",
+  "bidvertiser.com",
+  "adskeeper.co.uk",
+  "trafficjunky.net",
+  "adprovider.io",
+  "galaksion.com",
+  "clickaine.com",
+  "monetag.com",
+  "onesignal.com",
+  "pushnami.com",
+  "adnxs.com",
   // Redes de anúncio "mainstream" que também aparecem embutidas
-  'doubleclick.net', 'googlesyndication.com', 'googleadservices.com',
-  'taboola.com', 'outbrain.com', 'revcontent.com',
+  "doubleclick.net",
+  "googlesyndication.com",
+  "googleadservices.com",
+  "taboola.com",
+  "outbrain.com",
+  "revcontent.com",
   // Analytics/tracking externos (não têm nada a ver com métricas do
   // Superflix - não devem rodar dentro do player de terceiros)
-  'google-analytics.com', 'googletagmanager.com', 'connect.facebook.net',
-  'facebook.net', 'hotjar.com', 'clarity.ms', 'mixpanel.com',
-  'segment.io', 'amplitude.com', 'mc.yandex.ru',
+  "google-analytics.com",
+  "googletagmanager.com",
+  "connect.facebook.net",
+  "facebook.net",
+  "hotjar.com",
+  "clarity.ms",
+  "mixpanel.com",
+  "segment.io",
+  "amplitude.com",
+  "mc.yandex.ru",
 ];
 
 function isAdOrTrackingUrl(url: string): boolean {
   try {
     const hostname = new URL(url).hostname.toLowerCase();
-    return AD_AND_TRACKING_DOMAINS.some((d) => hostname === d || hostname.endsWith('.' + d));
+    return AD_AND_TRACKING_DOMAINS.some(
+      (d) => hostname === d || hostname.endsWith("." + d),
+    );
   } catch {
     return false;
   }
@@ -58,24 +95,34 @@ function isAdOrTrackingUrl(url: string): boolean {
 
 /** Remove tags <script src="..."> e <ins class="adsbygoogle" ...> de redes de anúncio/tracking conhecidas. */
 function stripAdScripts(html: string): string {
-  return html
-    // <script ... src="https://rede-de-anuncio.com/..." ...>...</script> (com ou sem corpo)
-    .replace(
-      /<script\b[^>]*\bsrc=(["'])(https?:\/\/[^"']+)\1[^>]*>[\s\S]*?<\/script>/gi,
-      (match, _q, src) => (isAdOrTrackingUrl(src) ? '' : match)
-    )
-    // <ins class="adsbygoogle" ...></ins> - unidades de anúncio do AdSense e similares
-    .replace(/<ins\b[^>]*\bclass=(["'])[^"']*adsbygoogle[^"']*\1[^>]*>[\s\S]*?<\/ins>/gi, '');
+  return (
+    html
+      // <script ... src="https://rede-de-anuncio.com/..." ...>...</script> (com ou sem corpo)
+      .replace(
+        /<script\b[^>]*\bsrc=(["'])(https?:\/\/[^"']+)\1[^>]*>[\s\S]*?<\/script>/gi,
+        (match, _q, src) => (isAdOrTrackingUrl(src) ? "" : match),
+      )
+      // <ins class="adsbygoogle" ...></ins> - unidades de anúncio do AdSense e similares
+      .replace(
+        /<ins\b[^>]*\bclass=(["'])[^"']*adsbygoogle[^"']*\1[^>]*>[\s\S]*?<\/ins>/gi,
+        "",
+      )
+  );
 }
 
-function rewriteUrlsToProxy(html: string, baseOrigin: string, allowedHosts: string[]): string {
+function rewriteUrlsToProxy(
+  html: string,
+  baseOrigin: string,
+  allowedHosts: string[],
+): string {
   // Primeiro remove scripts/unidades de anúncio e tracking conhecidos -
   // antes de qualquer reescrita de URL, para não desperdiçar trabalho
   // "proxiando" algo que vai ser descartado de qualquer forma.
   html = stripAdScripts(html);
 
   // Função para criar URL de proxy
-  const proxyUrl = (url: string) => `/api/proxy/asset?url=${encodeURIComponent(url)}`;
+  const proxyUrl = (url: string) =>
+    `/api/proxy/asset?url=${encodeURIComponent(url)}`;
 
   // Reescrever URLs em atributos src e href que apontam para domínios bloqueados
   // Importante: só reescreve se a URL é completa (não tem concatenação JS como " + variavel)
@@ -86,7 +133,7 @@ function rewriteUrlsToProxy(html: string, baseOrigin: string, allowedHosts: stri
         return `${attr}=${quote}${proxyUrl(url)}${quote}`;
       }
       return match;
-    }
+    },
   );
 
   // Reescrever URLs relativas (sem http/https) para URLs absolutas e então para proxy
@@ -96,19 +143,19 @@ function rewriteUrlsToProxy(html: string, baseOrigin: string, allowedHosts: stri
     (match, attr, quote, path) => {
       // Construir URL absoluta
       let absoluteUrl: string;
-      if (path.startsWith('//')) {
-        absoluteUrl = 'https:' + path;
-      } else if (path.startsWith('/')) {
+      if (path.startsWith("//")) {
+        absoluteUrl = "https:" + path;
+      } else if (path.startsWith("/")) {
         absoluteUrl = baseOrigin + path;
       } else {
-        absoluteUrl = baseOrigin + '/' + path;
+        absoluteUrl = baseOrigin + "/" + path;
       }
 
       if (shouldProxyUrl(absoluteUrl, allowedHosts)) {
         return `${attr}=${quote}${proxyUrl(absoluteUrl)}${quote}`;
       }
       return `${attr}=${quote}${absoluteUrl}${quote}`;
-    }
+    },
   );
 
   // Injetar script para interceptar fetch, XMLHttpRequest e HLS
@@ -501,10 +548,10 @@ function rewriteUrlsToProxy(html: string, baseOrigin: string, allowedHosts: stri
 </script>`;
 
   // Injetar o script no head
-  if (html.includes('<head>')) {
-    html = html.replace('<head>', '<head>' + interceptorScript);
-  } else if (html.includes('<head ')) {
-    html = html.replace(/<head([^>]*)>/, '<head$1>' + interceptorScript);
+  if (html.includes("<head>")) {
+    html = html.replace("<head>", "<head>" + interceptorScript);
+  } else if (html.includes("<head ")) {
+    html = html.replace(/<head([^>]*)>/, "<head$1>" + interceptorScript);
   } else {
     // Se não tiver head, adicionar no início
     html = interceptorScript + html;
@@ -513,14 +560,14 @@ function rewriteUrlsToProxy(html: string, baseOrigin: string, allowedHosts: stri
   return html;
 }
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // Função para seguir redirects com DNS customizado
 async function fetchWithRedirects(
   url: string,
   referer: string,
   allowedHosts: string[],
-  maxRedirects = 5
+  maxRedirects = 5,
 ): Promise<{ status: number; body: string } | null> {
   let currentUrl = url;
   let redirectCount = 0;
@@ -539,18 +586,22 @@ async function fetchWithRedirects(
     console.log(`[Proxy] ${hostname} -> ${resolvedIP}`);
 
     try {
-      const result = await fetchWithResolvedDNS(currentUrl, resolvedIP, { referer });
+      const result = await fetchWithResolvedDNS(currentUrl, resolvedIP, {
+        referer,
+      });
 
       // Se for redirect, seguir
       if (result.status >= 300 && result.status < 400 && result.redirect) {
         console.log(`[Proxy] Redirect ${result.status} -> ${result.redirect}`);
-        currentUrl = result.redirect.startsWith('http')
+        currentUrl = result.redirect.startsWith("http")
           ? result.redirect
           : new URL(result.redirect, currentUrl).href;
 
         // Verificar se o novo domínio é permitido
         if (!isAllowedDomain(currentUrl, allowedHosts)) {
-          console.error(`[Proxy] Redirect para domínio não permitido: ${currentUrl}`);
+          console.error(
+            `[Proxy] Redirect para domínio não permitido: ${currentUrl}`,
+          );
           return null;
         }
 
@@ -570,44 +621,57 @@ async function fetchWithRedirects(
 }
 
 export async function GET(request: NextRequest) {
-  const url = request.nextUrl.searchParams.get('url');
+  const url = request.nextUrl.searchParams.get("url");
 
-  console.log('[Embed Proxy] ========== NOVA REQUISIÇÃO ==========');
-  console.log('[Embed Proxy] URL solicitada:', url);
+  console.log("[Embed Proxy] ========== NOVA REQUISIÇÃO ==========");
+  console.log("[Embed Proxy] URL solicitada:", url);
 
   if (!url) {
-    console.log('[Embed Proxy] ERRO: URL não fornecida');
-    return NextResponse.json({ error: 'URL é obrigatória' }, { status: 400 });
+    console.log("[Embed Proxy] ERRO: URL não fornecida");
+    return NextResponse.json({ error: "URL é obrigatória" }, { status: 400 });
   }
 
   const allowedHosts = await getAllowedProxyHosts();
 
   if (!isAllowedDomain(url, allowedHosts)) {
-    console.log('[Embed Proxy] ERRO: Domínio não permitido:', url);
-    return NextResponse.json({ error: 'Domínio não permitido' }, { status: 403 });
+    console.log("[Embed Proxy] ERRO: Domínio não permitido:", url);
+    return NextResponse.json(
+      { error: "Domínio não permitido" },
+      { status: 403 },
+    );
   }
 
   try {
     // Usar o referer da request ou o host do site
-    const requestReferer = request.headers.get('referer') || request.headers.get('origin');
-    const referer = requestReferer || `https://${request.headers.get('host') || 'superflix.app'}/`;
+    const requestReferer =
+      request.headers.get("referer") || request.headers.get("origin");
+    const referer =
+      requestReferer ||
+      `https://${request.headers.get("host") || "superflix.app"}/`;
 
-    console.log('[Embed Proxy] Buscando conteúdo com referer:', referer);
+    console.log("[Embed Proxy] Buscando conteúdo com referer:", referer);
     const result = await fetchWithRedirects(url, referer, allowedHosts);
 
     if (!result) {
-      console.log('[Embed Proxy] ERRO: fetchWithRedirects retornou null');
-      return NextResponse.json({ error: 'Erro ao acessar o conteúdo' }, { status: 502 });
+      console.log("[Embed Proxy] ERRO: fetchWithRedirects retornou null");
+      return NextResponse.json(
+        { error: "Erro ao acessar o conteúdo" },
+        { status: 502 },
+      );
     }
 
-    console.log('[Embed Proxy] Resposta recebida - Status:', result.status);
-    console.log('[Embed Proxy] Tamanho do body:', result.body?.length || 0, 'bytes');
+    console.log("[Embed Proxy] Resposta recebida - Status:", result.status);
+    console.log(
+      "[Embed Proxy] Tamanho do body:",
+      result.body?.length || 0,
+      "bytes",
+    );
 
     if (result.status !== 200) {
-      console.log('[Embed Proxy] ERRO: Status não-200:', result.status);
+      console.log("[Embed Proxy] ERRO: Status não-200:", result.status);
       return NextResponse.json(
         { error: `Servidor retornou status ${result.status}` },
-        { status: result.status }
+        { status: result.status },
       );
     }
 
@@ -621,8 +685,8 @@ export async function GET(request: NextRequest) {
     html = rewriteUrlsToProxy(html, baseOrigin, allowedHosts);
 
     // Adicionar base tag se não existir (para recursos não capturados)
-    if (!html.includes('<base')) {
-      html = html.replace('<head>', `<head><base href="${baseOrigin}/">`);
+    if (!html.includes("<base")) {
+      html = html.replace("<head>", `<head><base href="${baseOrigin}/">`);
     }
 
     // NOTA: já tentamos restringir script-src só aos domínios dos
@@ -640,19 +704,12 @@ export async function GET(request: NextRequest) {
     return new NextResponse(html, {
       status: 200,
       headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': '*',
-        'X-Frame-Options': 'ALLOWALL',
-        'Content-Security-Policy': [
-          // Mesma restrição do atributo sandbox do <iframe> reforçada aqui:
-          // sem allow-popups/allow-top-navigation* o navegador bloqueia
-          // popups e redirecionamento da página inteira (anúncios). Isso é
-          // uma allowlist de PERMISSÕES do sandbox (sempre seguro deixar
-          // restrito), diferente do script-src (allowlist de ORIGENS, que
-          // se errar quebra o player - por isso ficou permissivo acima).
-          'sandbox allow-scripts allow-presentation',
+        "Content-Type": "text/html; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+        "X-Frame-Options": "ALLOWALL",
+        "Content-Security-Policy": [
           `default-src * 'unsafe-inline' 'unsafe-eval' data: blob:`,
           `script-src * 'unsafe-inline' 'unsafe-eval' blob:`,
           `worker-src * blob:`,
@@ -661,15 +718,15 @@ export async function GET(request: NextRequest) {
           `media-src * data: blob:`,
           `connect-src *`,
           `frame-src *`,
-        ].join('; '),
-        'Cache-Control': 'no-cache',
+        ].join("; "),
+        "Cache-Control": "no-cache",
       },
     });
   } catch (error) {
-    console.error('[Proxy] Error:', error);
+    console.error("[Proxy] Error:", error);
     return NextResponse.json(
-      { error: 'Erro interno do proxy', details: String(error) },
-      { status: 500 }
+      { error: "Erro interno do proxy", details: String(error) },
+      { status: 500 },
     );
   }
 }
