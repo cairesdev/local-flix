@@ -63,7 +63,7 @@ export function Modal({
       {/* Modal */}
       <div
         className={cn(
-          'relative w-full mx-4 bg-[var(--bg-secondary)] rounded-xl shadow-[var(--shadow-lg)]',
+          'relative w-full mx-4 bg-[var(--bg-secondary)] rounded-2xl shadow-[var(--shadow-lg)] ring-1 ring-[var(--card-border)]',
           'animate-scale-in overflow-hidden',
           sizeClasses[size],
           className

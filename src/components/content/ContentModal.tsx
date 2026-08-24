@@ -132,7 +132,7 @@ export function ContentModal({
 
           {/* Poster (mobile hidden) */}
           {posterUrl && (
-            <div className="hidden md:block absolute -bottom-16 left-6 w-32 rounded-lg overflow-hidden shadow-xl">
+            <div className="hidden md:block absolute -bottom-16 left-6 w-32 rounded-xl overflow-hidden shadow-[var(--shadow-lg)] ring-1 ring-[var(--card-border)]">
               <img src={posterUrl} alt={title} className="w-full aspect-[2/3] object-cover" />
             </div>
           )}
@@ -242,7 +242,7 @@ export function ContentModal({
                     <Link
                       key={episode.id}
                       href={`/watch/tv/${contentId}?s=${selectedSeason}&e=${episode.episode_number}`}
-                      className="flex gap-4 p-3 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)]/80 transition-colors group"
+                      className="flex gap-4 p-3 rounded-2xl bg-[var(--bg-tertiary)]/60 ring-1 ring-inset ring-[var(--card-border)] hover:bg-[var(--bg-tertiary)] hover:shadow-[var(--shadow-sm)] transition-all group"
                     >
                       <div className="relative w-32 flex-shrink-0 rounded overflow-hidden">
                         <img

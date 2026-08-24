@@ -7,11 +7,9 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg-primary)]">
+    <div className="min-h-screen flex flex-col app-bg">
       <Header />
-      <br />
-      <br />
-      <main className="flex-1 pb-20 md:pb-0">{children}</main>
+      <main className="flex-1 pb-28 md:pb-0">{children}</main>
       <MobileNav />
     </div>
   );

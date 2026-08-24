@@ -7,56 +7,63 @@
 /* Theme layer - CSS Variables (extende o tema do Tailwind) */
 @layer theme {
   :root {
-    /* Colors - tema CLARO pastel. Fundo lavanda-branco muito suave em vez
-       de branco puro (menos "clínico"), superfícies elevadas em branco
-       real pra criar profundidade por contraste, não por escurecimento. */
-    --bg-primary: #f7f5fb;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #efebfa;
-    --bg-elevated: #ffffff;
+    /* Colors - tema CLARO pastel, 2ª geração. O branco puro (#fff) das
+       superfícies elevadas ficava "estourado" contra o canto lavanda do
+       fundo - aqui NENHUMA superfície é branco puro: todas recebem um
+       leve tingimento lilás, e a profundidade vem de sombra colorida +
+       borda sutil (--card-border), não de contraste cru de luminância. */
+    --bg-primary: #efe9fb;
+    --bg-secondary: #f8f5ff;
+    --bg-tertiary: #e3daf3;
+    --bg-elevated: #fbf9ff;
 
     /* Typography colors - texto escuro (não preto puro) sobre fundo claro */
-    --text-primary: #241f33;
-    --text-secondary: #6b6480;
-    --text-tertiary: #9b93ab;
+    --text-primary: #201b2e;
+    --text-secondary: #665e7c;
+    --text-tertiary: #948aa8;
 
-    /* Accent - indigo/periwinkle pastel. Serve de cor de foco, links,
-       abas ativas, badges e botões primários (agora preenchidos, já que
-       um botão branco sumiria num fundo já claro). */
-    --accent-primary: #6c7bf0;
-    --accent-hover: #5563de;
-    --accent-glow: rgba(108, 123, 240, 0.3);
+    /* Accent - indigo/periwinkle pastel, um pouco mais saturado que a
+       primeira versão pra ganhar presença sem depender de fundo escuro.
+       Serve de cor de foco, links, abas ativas, badges e botões primários. */
+    --accent-primary: #7c6ff2;
+    --accent-hover: #6355dd;
+    --accent-glow: rgba(124, 111, 242, 0.35);
 
     /* Accent secundário - lilás pastel, usado pra diferenciar categorias
        (ex.: tag "Série" vs tag "Filme" nas sugestões de busca). */
-    --accent-secondary: #c08af7;
-    --accent-secondary-hover: #9b5ce0;
+    --accent-secondary: #d68ef9;
+    --accent-secondary-hover: #b85be0;
 
     /* Cor de "ao vivo"/erro, sucesso e aviso - tons pastel mas ainda
        legíveis como texto/ícone sobre fundo claro. */
-    --live-accent: #f0525f;
-    --success-accent: #3fb37a;
-    --warning-accent: #e8a33d;
+    --live-accent: #f2536a;
+    --success-accent: #35b787;
+    --warning-accent: #eba53f;
 
-    /* Borders & Surfaces - sombras escuras sutis em vez de brancas */
-    --border-color: rgba(36, 31, 51, 0.1);
-    --border-subtle: rgba(36, 31, 51, 0.06);
-    --glass-bg: rgba(255, 255, 255, 0.72);
-    --glass-border: rgba(36, 31, 51, 0.08);
+    /* Borders & Surfaces - sombras escuras sutis em vez de brancas.
+       --card-border é a linha de 1px que separa cards/painéis do fundo
+       agora que não há mais salto de branco puro pra defini-los. */
+    --border-color: rgba(32, 27, 46, 0.14);
+    --border-subtle: rgba(32, 27, 46, 0.08);
+    --card-border: rgba(32, 27, 46, 0.07);
+    --glass-bg: rgba(251, 249, 255, 0.78);
+    --glass-border: rgba(32, 27, 46, 0.1);
 
     /* Superfície escura dedicada aos "chips" de logo de canal de TV: a
        maioria dos logos de emissora é PNG branco/claro pensado pra ficar
        sobre fundo escuro (inclusive o app real da Apple TV mantém os
        tiles de canal escuros mesmo em tema claro) - por isso não migra
        para os tokens de fundo claro acima. */
-    --tv-tile-bg: #211d38;
-    --tv-tile-bg-alt: #2b2648;
+    --tv-tile-bg: #1c1830;
+    --tv-tile-bg-alt: #292350;
 
-    /* Shadows */
-    --shadow-sm: 0 2px 8px rgba(36, 31, 51, 0.06);
-    --shadow-md: 0 8px 24px rgba(36, 31, 51, 0.1);
-    --shadow-lg: 0 16px 48px rgba(36, 31, 51, 0.14);
-    --shadow-glow: 0 12px 40px var(--accent-glow);
+    /* Shadows - agora com uma pitada da cor de destaque misturada à
+       sombra neutra, em vez de cinza puro. Isso é o que dá a sensação de
+       "profundidade" que faltava nos blocos brancos chapados. */
+    --shadow-sm: 0 2px 10px rgba(32, 27, 46, 0.08);
+    --shadow-md: 0 10px 28px rgba(32, 27, 46, 0.12), 0 3px 10px rgba(124, 111, 242, 0.1);
+    --shadow-lg: 0 22px 54px rgba(32, 27, 46, 0.18), 0 6px 18px rgba(124, 111, 242, 0.12);
+    --shadow-glow: 0 16px 46px var(--accent-glow);
 
     /* Animation timing */
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -79,6 +86,15 @@
 
   body {
     background-color: var(--bg-primary);
+    /* Wash sutil no topo da página - quebra a "chapada" de cor sólida
+       que fazia o fundo (e por contraste, os cards brancos sobre ele)
+       parecerem estourados. Fixed pra não repetir o degradê a cada
+       seção comprida. */
+    background-image:
+      radial-gradient(ellipse 55% 45% at 12% -8%, rgba(124, 111, 242, 0.16), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 105% 0%, rgba(214, 142, 249, 0.14), transparent 60%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
@@ -229,12 +245,26 @@
   .toast-error { border-left: 3px solid var(--live-accent); }
   .toast-info { border-left: 3px solid var(--accent-primary); }
 
+  /* Fundo de página com o mesmo wash do body - usado nos wrappers de
+     página em vez de bg-[var(--bg-primary)] sólido, pra que o degradê
+     sutil apareça mesmo quando a página tem seu próprio container opaco
+     por cima do body (o que era o caso praticamente em toda a aplicação). */
+  .app-bg {
+    background-color: var(--bg-primary);
+    background-image:
+      radial-gradient(ellipse 55% 45% at 12% -8%, rgba(124, 111, 242, 0.16), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 105% 0%, rgba(214, 142, 249, 0.14), transparent 60%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+
   /* Card Styles */
   .poster-card {
     position: relative;
-    border-radius: 12px;
+    border-radius: 14px;
     overflow: hidden;
     background: var(--bg-secondary);
+    box-shadow: var(--shadow-sm);
     transition:
       transform var(--transition-normal),
       box-shadow var(--transition-normal);
@@ -245,15 +275,13 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    box-shadow: inset 0 0 0 1px rgba(36, 31, 51, 0.08);
+    box-shadow: inset 0 0 0 1px var(--card-border);
     pointer-events: none;
   }
 
   .poster-card:hover {
     transform: scale(1.05);
-    box-shadow:
-      0 20px 40px rgba(36, 31, 51, 0.16),
-      0 0 40px var(--accent-glow);
+    box-shadow: var(--shadow-lg);
   }
 
   /* Hero Gradients */
@@ -358,30 +386,37 @@
     transform: scale(1.05);
   }
 
-  /* Navigation Styles */
+  /* Navigation Styles - pill ativo em vez de ponto, mais fácil de ler
+     sobre o header glass e mais alinhado com a navegação mobile. */
   .nav-link {
     position: relative;
-    padding: 12px 20px;
+    padding: 9px 18px;
     font-size: 0.9375rem;
     font-weight: 400;
     color: var(--text-secondary);
     text-decoration: none;
-    transition: color var(--transition-fast);
+    border-radius: 999px;
+    transition:
+      color var(--transition-fast),
+      background var(--transition-fast);
   }
 
   .nav-link:hover {
     color: var(--text-primary);
+    background: var(--bg-tertiary);
   }
 
   .nav-link.active {
     color: var(--text-primary);
-    font-weight: 500;
+    font-weight: 600;
+    background: var(--bg-tertiary);
+    box-shadow: inset 0 0 0 1px var(--card-border);
   }
 
   .nav-link.active::after {
     content: '';
     position: absolute;
-    bottom: 4px;
+    bottom: 6px;
     left: 50%;
     transform: translateX(-50%);
     width: 4px;

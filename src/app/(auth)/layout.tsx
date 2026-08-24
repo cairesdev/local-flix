@@ -4,7 +4,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-[var(--bg-primary)] p-4 overflow-hidden">
+    <div className="relative min-h-screen flex items-center justify-center app-bg p-4 overflow-hidden">
       {/* Glow de fundo sutil - identidade visual consistente com o resto do app */}
       <div
         className="pointer-events-none absolute inset-0 opacity-60"

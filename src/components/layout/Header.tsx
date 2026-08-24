@@ -216,8 +216,11 @@ export function Header() {
       >
         <div className="max-w-[1800px] mx-auto px-6 md:px-12 h-[72px] flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center flex-shrink-0">
-            <span className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--accent-primary)]">
+          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
+            <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] shadow-[var(--shadow-sm)] flex items-center justify-center">
+              <span className="text-sm font-bold text-white">S</span>
+            </span>
+            <span className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
               {env.site.name}
             </span>
           </Link>

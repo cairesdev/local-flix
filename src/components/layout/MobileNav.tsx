@@ -43,54 +43,44 @@ export function MobileNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-      {/* Blur background */}
-      <div className="absolute inset-0 glass" />
-
-      {/* Navigation items */}
-      <div className="relative flex items-center justify-around h-16 px-2 safe-bottom">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl transition-all',
-                'min-w-[60px]',
-                item.active
-                  ? 'text-[var(--text-primary)]'
-                  : 'text-[var(--text-tertiary)]'
-              )}
-            >
-              <div
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden px-3 pb-3 safe-bottom pointer-events-none">
+      {/* Ilha flutuante - em vez de barra full-width chapada, um cartão
+          arredondado com sombra colorida, mais próximo do padrão atual
+          de navegação mobile (iOS/Android) e menos "estourado" contra o
+          fundo claro. */}
+      <div className="relative max-w-md mx-auto rounded-[28px] glass shadow-[var(--shadow-lg)] pointer-events-auto">
+        <div className="flex items-center justify-around h-[64px] px-1.5">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
                 className={cn(
-                  'relative flex items-center justify-center',
-                  'transition-transform duration-300',
-                  item.active && 'scale-110'
+                  'relative flex flex-col items-center justify-center gap-0.5 py-2 rounded-2xl transition-all duration-300',
+                  'min-w-[56px]',
+                  item.active
+                    ? 'text-[var(--accent-primary)] bg-[var(--accent-primary)]/12'
+                    : 'text-[var(--text-tertiary)]'
                 )}
               >
                 <Icon
-                  size={22}
-                  strokeWidth={item.active ? 2 : 1.5}
-                  className="transition-all"
+                  size={21}
+                  strokeWidth={item.active ? 2.25 : 1.5}
+                  className={cn('transition-transform duration-300', item.active && 'scale-110')}
                 />
-                {/* Active indicator dot */}
-                {item.active && (
-                  <span className="absolute -bottom-2 w-1 h-1 rounded-full bg-[var(--text-primary)]" />
-                )}
-              </div>
-              <span
-                className={cn(
-                  'text-[10px] font-medium transition-opacity',
-                  item.active ? 'opacity-100' : 'opacity-60'
-                )}
-              >
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
+                <span
+                  className={cn(
+                    'text-[10px] font-medium transition-opacity',
+                    item.active ? 'opacity-100' : 'opacity-70'
+                  )}
+                >
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { tmdb } from '@/services/tmdb';
 import { cn } from '@/lib/utils';
-import { Play } from 'lucide-react';
+import { Play, Star } from 'lucide-react';
 import type { Content } from '@/types/content';
 
 interface ContentCardProps {
@@ -36,6 +36,7 @@ export function ContentCard({
   const title = content.title || content.name || 'Sem título';
   const releaseDate = content.release_date || content.first_air_date;
   const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
+  const rating = content.vote_average ? content.vote_average.toFixed(1) : null;
 
   const imageUrl = variant === 'backdrop'
     ? (content.backdrop_path
@@ -93,6 +94,31 @@ export function ContentCard({
             </span>
           </div>
         )}
+
+        {/* Badges - nota e tipo, sempre visíveis (não só no hover) pra dar
+            informação de relance ao rolar o carrossel */}
+        <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-1 z-[1]">
+          {showType ? (
+            <span
+              className={cn(
+                'px-1.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide backdrop-blur-sm',
+                mediaType === 'movie'
+                  ? 'bg-[var(--accent-primary)]/80 text-white'
+                  : 'bg-[var(--accent-secondary)]/80 text-white'
+              )}
+            >
+              {mediaType === 'movie' ? 'Filme' : 'Série'}
+            </span>
+          ) : (
+            <span />
+          )}
+          {rating && Number(rating) > 0 && (
+            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-black/55 text-white backdrop-blur-sm">
+              <Star size={9} fill="currentColor" className="text-yellow-400" />
+              {rating}
+            </span>
+          )}
+        </div>
 
         {/* Hover Overlay - Apple TV style: minimal, just play icon */}
         <div
