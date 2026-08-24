@@ -188,7 +188,7 @@ export default function TVPage() {
 
   // Página de listagem de canais
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] pt-[var(--header-height)]">
+    <div className="min-h-screen app-bg pt-[var(--header-height)]">
       {/* Header Mobile - fica abaixo do header global fixo (sticky com offset,
           em vez de um segundo cabeçalho sobrepondo o principal) */}
       {isMobile && (

@@ -190,7 +190,7 @@ export default function WatchPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)]">
+      <div className="min-h-screen app-bg">
         <SkeletonPlayer />
       </div>
     );
@@ -198,7 +198,7 @@ export default function WatchPage() {
 
   if (!content) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
+      <div className="min-h-screen app-bg flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-4">
             Conteúdo não encontrado
@@ -490,7 +490,7 @@ export default function WatchPage() {
       )}
 
       {/* Content Info Abaixo */}
-      <div className="bg-[var(--bg-primary)]">
+      <div className="app-bg">
         <div className="container mx-auto px-4 md:px-6 py-8 md:py-12 md:pt-32">
           {/* Sinopse completa */}
           {content.overview && (
