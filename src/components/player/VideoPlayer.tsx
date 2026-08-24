@@ -43,7 +43,11 @@ export function VideoPlayer({
 }: VideoPlayerProps) {
   const [candidates, setCandidates] = useState<PlayerCandidate[] | null>(null);
   const [candidateIdx, setCandidateIdx] = useState(0);
-  const [mode, setMode] = useState<'direct' | 'proxy'>('direct');
+  // Começa em "proxy": é o único modo em que temos alguma defesa contra
+  // popup/redirect de anúncio (interceptor injetado - ver comentário no
+  // <iframe> abaixo). "direct" (URL real do provedor, sem nosso script)
+  // fica como fallback automático via handleError, não como padrão.
+  const [mode, setMode] = useState<'direct' | 'proxy'>('proxy');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -60,7 +64,7 @@ export function VideoPlayer({
     setError(null);
     setCandidates(null);
     setCandidateIdx(0);
-    setMode('direct');
+    setMode('proxy');
 
     const params = new URLSearchParams({ mediaType, id });
     if (season) params.set('season', String(season));
@@ -96,6 +100,66 @@ export function VideoPlayer({
   const current = candidates?.[candidateIdx];
   const playerUrl = current ? (mode === 'proxy' ? current.proxiedUrl : current.directUrl) : undefined;
 
+  // ------------------------------------------------------------------
+  // Defesa contra REDIRECT (não popup) de anúncio: sem "sandbox" (ver
+  // comentário no <iframe> abaixo), um script dentro do player consegue
+  // navegar a própria aba inteira pra fora do site (`top.location = ...`)
+  // ou trocar só o conteúdo do iframe por uma página de anúncio
+  // (`location.href = ...`), e nenhum dos dois passa pelo fetch/XHR
+  // interceptado - são navegações de documento de verdade, não temos como
+  // simplesmente bloquear silenciosamente sem reintroduzir o sandbox (que
+  // quebra o player, ver PR anterior). Então: duas camadas de contenção.
+  // ------------------------------------------------------------------
+
+  // 1) Se o script tentar levar a ABA inteira pra outro site, o navegador
+  // dispara "beforeunload" antes de sair - interceptamos pra exigir
+  // confirmação do usuário em vez de deixar o redirect acontecer direto.
+  // Só entra em jogo pra navegação de documento de verdade: trocar de
+  // página dentro do próprio app (Next.js) não passa por aqui.
+  useEffect(() => {
+    if (!playerUrl) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [playerUrl]);
+
+  // 2) Se o script só trocar o CONTEÚDO do iframe (sem afetar a aba
+  // inteira) por uma página de anúncio de outro domínio, o iframe deixa
+  // de ser "same-origin" com a nossa página (só é same-origin enquanto
+  // continua servido pelo nosso /api/proxy/embed). Detectamos isso
+  // tentando ler a URL do iframe periodicamente: se virar inacessível
+  // (erro de cross-origin), ele saiu do nosso proxy. O atributo "src" do
+  // <iframe> não reflete essa navegação interna (o navegador não avisa o
+  // pai), então recarregar via "src" não força nada - em vez disso,
+  // escrevemos direto em "contentWindow.location" (acesso de escrita
+  // cross-origin é permitido mesmo sem conseguir ler) pra forçar o iframe
+  // de volta pra URL esperada e "fechar" a página estranha.
+  useEffect(() => {
+    if (mode !== 'proxy' || !playerUrl) return;
+
+    const resolvedUrl = new URL(playerUrl, window.location.origin).href;
+
+    const watchdog = setInterval(() => {
+      const win = iframeRef.current?.contentWindow;
+      if (!win) return;
+      try {
+        void win.location.href;
+      } catch {
+        try {
+          win.location.replace(resolvedUrl);
+        } catch {
+          // Se nem a escrita funcionar, o fallback normal de erro/troca
+          // de provedor do player continua de pé.
+        }
+      }
+    }, 1500);
+
+    return () => clearInterval(watchdog);
+  }, [mode, playerUrl]);
+
   const handleLoad = () => {
     setIsLoading(false);
     if (current && !reportedRef.current) {
@@ -111,7 +175,7 @@ export function VideoPlayer({
     }
     if (candidates && candidateIdx < candidates.length - 1) {
       setCandidateIdx((i) => i + 1);
-      setMode('direct');
+      setMode('proxy');
       setIsLoading(true);
       setError(null);
     } else {
@@ -122,10 +186,13 @@ export function VideoPlayer({
 
   const handleError = useCallback(() => {
     setIsLoading(false);
-    if (mode === 'direct') {
-      // Antes de descartar o provedor, tenta a rota via proxy (contorna
-      // bloqueios de rede/CORS sem precisar trocar de provedor).
-      setMode('proxy');
+    if (mode === 'proxy') {
+      // Antes de descartar o provedor, tenta a URL direta (contorna casos
+      // em que o proxy falha - domínio fora do allowlist, bloqueio de
+      // rede/CORS no lado do proxy, etc.) sem precisar trocar de provedor.
+      // Só o modo "proxy" tem o interceptor de ads/popup, então essa é a
+      // ordem que preserva a proteção sempre que possível.
+      setMode('direct');
       setIsLoading(true);
       setError(null);
       return;
@@ -185,7 +252,7 @@ export function VideoPlayer({
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-black">
           <div className="text-center max-w-sm px-4">
-            <AlertCircle className="w-12 h-12 text-[#ff3b30] mx-auto mb-4" />
+            <AlertCircle className="w-12 h-12 text-[var(--live-accent)] mx-auto mb-4" />
             <p className="text-[var(--text-primary)] mb-4">{error}</p>
             <div className="flex gap-2 justify-center">
               {hasMoreProviders && (
@@ -201,7 +268,7 @@ export function VideoPlayer({
                 onClick={() => {
                   setError(null);
                   setIsLoading(true);
-                  setMode('direct');
+                  setMode('proxy');
                   setCandidateIdx(0);
                 }}
                 className="btn-secondary !px-4 !py-2 text-sm"
@@ -232,12 +299,12 @@ export function VideoPlayer({
           // suficiente pra eles recusarem rodar. A documentação oficial
           // deles também usa iframe sem sandbox. A proteção contra
           // popup/redirect de anúncio deixa de ser nativa do navegador e
-          // passa a depender só das camadas de JS: no modo "proxy" o
-          // interceptor injetado sobrescreve window.open e intercepta
-          // cliques em links de anúncio/tracking; no modo "direct" (domínio
-          // real do provedor, sem nosso script) não há essa rede de
-          // segurança - se voltar a aparecer popup/redirect nesse modo, dá
-          // pra reavaliar.
+          // passa a depender só das camadas de JS do interceptor injetado
+          // pelo proxy (sobrescreve window.open, intercepta cliques em
+          // links de anúncio/tracking, remove scripts de ads conhecidos) -
+          // por isso "proxy" é o modo padrão (ver useState de "mode" acima)
+          // e "direct" (URL real do provedor, sem esse script, sem defesa
+          // nenhuma) só entra como fallback quando o proxy falha.
           onLoad={handleLoad}
           onError={handleError}
         />

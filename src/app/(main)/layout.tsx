@@ -1,5 +1,5 @@
-import { Header } from '@/components/layout/Header';
-import { MobileNav } from '@/components/layout/MobileNav';
+import { Header } from "@/components/layout/Header";
+import { MobileNav } from "@/components/layout/MobileNav";
 
 export default function MainLayout({
   children,
@@ -9,9 +9,9 @@ export default function MainLayout({
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-primary)]">
       <Header />
-      <main className="flex-1 pb-20 md:pb-0">
-        {children}
-      </main>
+      <br />
+      <br />
+      <main className="flex-1 pb-20 md:pb-0">{children}</main>
       <MobileNav />
     </div>
   );

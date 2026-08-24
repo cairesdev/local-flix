@@ -15,9 +15,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const showLoading = isLoading || loading;
     const variants = {
       primary: 'bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white',
-      secondary: 'bg-[var(--bg-tertiary)] hover:bg-white/20 text-[var(--text-primary)]',
-      ghost: 'bg-transparent hover:bg-white/10 text-[var(--text-primary)]',
-      danger: 'bg-red-600 hover:bg-red-700 text-white',
+      secondary: 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)]/60 text-[var(--text-primary)]',
+      ghost: 'bg-transparent hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]',
+      danger: 'bg-[var(--live-accent)] hover:opacity-90 text-white',
     };
 
     const sizes = {

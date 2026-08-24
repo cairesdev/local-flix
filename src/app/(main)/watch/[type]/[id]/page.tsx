@@ -348,8 +348,8 @@ export default function WatchPage() {
                 {/* Tipo e Rating */}
                 <div className="flex items-center justify-center md:justify-start gap-3 mb-2 md:mb-3">
                   <span className={cn(
-                    'px-2.5 py-1 rounded-full text-[10px] md:text-xs font-semibold uppercase tracking-wide',
-                    type === 'movie' ? 'bg-blue-600' : 'bg-purple-600'
+                    'px-2.5 py-1 rounded-full text-[10px] md:text-xs font-semibold uppercase tracking-wide text-white',
+                    type === 'movie' ? 'bg-[var(--accent-primary)]' : 'bg-[var(--accent-secondary)]'
                   )}>
                     {type === 'movie' ? 'Filme' : 'Série'}
                   </span>

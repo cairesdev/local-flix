@@ -18,9 +18,9 @@ export function Badge({
   const variantClasses = {
     default: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]',
     primary: 'bg-[var(--accent-primary)] text-white',
-    success: 'bg-green-500/20 text-green-400',
-    warning: 'bg-yellow-500/20 text-yellow-400',
-    danger: 'bg-red-500/20 text-red-400',
+    success: 'bg-[var(--success-accent)]/20 text-[var(--success-accent)]',
+    warning: 'bg-[var(--warning-accent)]/20 text-[var(--warning-accent)]',
+    danger: 'bg-[var(--live-accent)]/20 text-[var(--live-accent)]',
   };
 
   const sizeClasses = {

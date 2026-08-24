@@ -83,17 +83,17 @@ export function TVRecentlyWatchedRow({ onSelectChannel }: TVRecentlyWatchedRowPr
   return (
     <div className="mb-8">
       <div className="flex items-center gap-2 mb-4">
-        <History size={20} className="text-blue-400" />
-        <h2 className="text-xl font-semibold text-white">Assistidos Recentemente</h2>
+        <History size={20} className="text-[var(--accent-primary)]" />
+        <h2 className="text-xl font-semibold text-[var(--text-primary)]">Assistidos Recentemente</h2>
       </div>
 
       <div className="relative group">
         {/* Botao Scroll Esquerda */}
         <button
           onClick={() => scroll('left')}
-          className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black hidden md:flex"
+          className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-[var(--bg-elevated)] shadow-[var(--shadow-md)] border border-[var(--border-color)] rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[var(--bg-tertiary)] hidden md:flex"
         >
-          <ChevronLeft size={24} className="text-white" />
+          <ChevronLeft size={24} className="text-[var(--text-primary)]" />
         </button>
 
         {/* Cards */}
@@ -108,18 +108,18 @@ export function TVRecentlyWatchedRow({ onSelectChannel }: TVRecentlyWatchedRowPr
             >
               <button
                 onClick={() => handleSelectChannel(item)}
-                className="w-full bg-[#1a1a1a] rounded-xl overflow-hidden hover:bg-[#252525] transition-all hover:scale-105"
+                className="w-full bg-[var(--bg-secondary)] rounded-xl overflow-hidden transition-all hover:scale-105 hover:shadow-[var(--shadow-md)]"
               >
                 {/* Badge LIVE */}
                 <div className="absolute top-2 left-2 z-10">
-                  <span className="flex items-center gap-1 px-2 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded">
+                  <span className="flex items-center gap-1 px-2 py-0.5 bg-[var(--live-accent)] text-white text-[10px] font-bold rounded">
                     <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                     LIVE
                   </span>
                 </div>
 
                 {/* Logo */}
-                <div className="aspect-video flex items-center justify-center p-4 bg-gradient-to-br from-[#252525] to-[#1a1a1a]">
+                <div className="relative aspect-video flex items-center justify-center p-4 bg-gradient-to-br from-[var(--tv-tile-bg-alt)] to-[var(--tv-tile-bg)]">
                   {item.channel_logo ? (
                     <img
                       src={item.channel_logo}
@@ -130,12 +130,12 @@ export function TVRecentlyWatchedRow({ onSelectChannel }: TVRecentlyWatchedRowPr
                       }}
                     />
                   ) : (
-                    <Tv size={32} className="text-gray-600" />
+                    <Tv size={32} className="text-[var(--text-tertiary)]" />
                   )}
 
                   {/* Play overlay */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-[var(--success-accent)] flex items-center justify-center">
                       <Play size={24} className="text-white ml-1" fill="currentColor" />
                     </div>
                   </div>
@@ -143,8 +143,8 @@ export function TVRecentlyWatchedRow({ onSelectChannel }: TVRecentlyWatchedRowPr
 
                 {/* Nome */}
                 <div className="p-3">
-                  <p className="text-white text-sm font-medium truncate">{item.channel_name}</p>
-                  <p className="text-gray-500 text-xs">{formatTimeAgo(item.watched_at)}</p>
+                  <p className="text-[var(--text-primary)] text-sm font-medium truncate">{item.channel_name}</p>
+                  <p className="text-[var(--text-tertiary)] text-xs">{formatTimeAgo(item.watched_at)}</p>
                 </div>
               </button>
             </div>
@@ -154,9 +154,9 @@ export function TVRecentlyWatchedRow({ onSelectChannel }: TVRecentlyWatchedRowPr
         {/* Botao Scroll Direita */}
         <button
           onClick={() => scroll('right')}
-          className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black hidden md:flex"
+          className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-[var(--bg-elevated)] shadow-[var(--shadow-md)] border border-[var(--border-color)] rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[var(--bg-tertiary)] hidden md:flex"
         >
-          <ChevronRight size={24} className="text-white" />
+          <ChevronRight size={24} className="text-[var(--text-primary)]" />
         </button>
       </div>
     </div>

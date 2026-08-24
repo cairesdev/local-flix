@@ -1,9 +1,26 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { fetchEmbedTVChannels, getEmbedPlayerUrl, clearEmbedTVCache } from '@/services/embedtv';
-import { cn } from '@/lib/utils';
-import { Search, Heart, Calendar, ChevronLeft, ChevronRight, RefreshCw, X, ArrowLeft, Tv, Maximize, Minimize, History } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import {
+  fetchEmbedTVChannels,
+  getEmbedPlayerUrl,
+  clearEmbedTVCache,
+} from "@/services/embedtv";
+import { cn } from "@/lib/utils";
+import {
+  Search,
+  Heart,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  X,
+  ArrowLeft,
+  Tv,
+  Maximize,
+  Minimize,
+  History,
+} from "lucide-react";
 import {
   initTVService,
   isFavorite,
@@ -14,11 +31,11 @@ import {
   getFavorites,
   loadLocalFavorites,
   loadLocalHistory,
-} from '@/services/tvProgress';
-import { useAuth } from '@/context/AuthContext';
-import type { Channel } from '@/types/tv';
+} from "@/services/tvProgress";
+import { useAuth } from "@/context/AuthContext";
+import type { Channel } from "@/types/tv";
 
-type TabType = 'channels' | 'favorites' | 'recent' | 'schedule';
+type TabType = "channels" | "favorites" | "recent" | "schedule";
 
 export default function TVPage() {
   const { user } = useAuth();
@@ -27,9 +44,9 @@ export default function TVPage() {
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('Todos');
-  const [activeTab, setActiveTab] = useState<TabType>('channels');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("Todos");
+  const [activeTab, setActiveTab] = useState<TabType>("channels");
   const [favorites, setFavorites] = useState<string[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
@@ -49,8 +66,8 @@ export default function TVPage() {
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   // Inicializar servico de TV e carregar favoritos
@@ -81,7 +98,7 @@ export default function TVPage() {
 
   // Wrapper para toggle favorito por ID (usado em componentes filhos)
   const toggleFavoriteById = (channelId: string) => {
-    const channel = channels.find(ch => ch.id === channelId);
+    const channel = channels.find((ch) => ch.id === channelId);
     if (channel) {
       handleToggleFavorite(channel);
     }
@@ -99,10 +116,10 @@ export default function TVPage() {
       if (forceRefresh) clearEmbedTVCache();
       const data = await fetchEmbedTVChannels();
       setChannels(data.channels);
-      setCategories(['Todos', ...data.categories]);
+      setCategories(["Todos", ...data.categories]);
     } catch (err) {
-      console.error('Error loading channels:', err);
-      setError('Erro ao carregar canais');
+      console.error("Error loading channels:", err);
+      setError("Erro ao carregar canais");
     } finally {
       setIsLoading(false);
     }
@@ -113,16 +130,16 @@ export default function TVPage() {
     let result = channels;
 
     // Filtrar por favoritos
-    if (activeTab === 'favorites') {
+    if (activeTab === "favorites") {
       const favIds = getFavoriteIds();
-      result = result.filter(ch => favIds.includes(ch.id));
+      result = result.filter((ch) => favIds.includes(ch.id));
     }
 
     // Filtrar por recentes
-    if (activeTab === 'recent') {
+    if (activeTab === "recent") {
       const history = getHistory();
-      const historyIds = history.map(h => h.channel_id);
-      result = result.filter(ch => historyIds.includes(ch.id));
+      const historyIds = history.map((h) => h.channel_id);
+      result = result.filter((ch) => historyIds.includes(ch.id));
       // Ordenar por ordem do historico
       result.sort((a, b) => {
         const aIndex = historyIds.indexOf(a.id);
@@ -133,14 +150,14 @@ export default function TVPage() {
 
     // Filtrar por busca
     if (searchQuery) {
-      result = result.filter(ch =>
-        ch.name.toLowerCase().includes(searchQuery.toLowerCase())
+      result = result.filter((ch) =>
+        ch.name.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
 
     // Filtrar por categoria
-    if (activeCategory !== 'Todos' && activeTab === 'channels') {
-      result = result.filter(ch => ch.category === activeCategory);
+    if (activeCategory !== "Todos" && activeTab === "channels") {
+      result = result.filter((ch) => ch.category === activeCategory);
     }
 
     return result;
@@ -149,8 +166,8 @@ export default function TVPage() {
   // Agrupar por categoria para desktop
   const channelsByCategory = useMemo(() => {
     const grouped: Record<string, Channel[]> = {};
-    filteredChannels.forEach(ch => {
-      const cat = ch.category || 'Outros';
+    filteredChannels.forEach((ch) => {
+      const cat = ch.category || "Outros";
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push(ch);
     });
@@ -179,12 +196,12 @@ export default function TVPage() {
           {/* Tabs */}
           <div className="flex border-b border-[var(--border-color)]">
             <button
-              onClick={() => setActiveTab('channels')}
+              onClick={() => setActiveTab("channels")}
               className={cn(
-                'flex-1 py-3 text-sm font-medium transition-colors',
-                activeTab === 'channels'
-                  ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
-                  : 'text-[var(--text-tertiary)]'
+                "flex-1 py-3 text-sm font-medium transition-colors",
+                activeTab === "channels"
+                  ? "text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]"
+                  : "text-[var(--text-tertiary)]",
               )}
             >
               <div className="flex items-center justify-center gap-2">
@@ -193,12 +210,12 @@ export default function TVPage() {
               </div>
             </button>
             <button
-              onClick={() => setActiveTab('favorites')}
+              onClick={() => setActiveTab("favorites")}
               className={cn(
-                'flex-1 py-3 text-sm font-medium transition-colors',
-                activeTab === 'favorites'
-                  ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
-                  : 'text-[var(--text-tertiary)]'
+                "flex-1 py-3 text-sm font-medium transition-colors",
+                activeTab === "favorites"
+                  ? "text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]"
+                  : "text-[var(--text-tertiary)]",
               )}
             >
               <div className="flex items-center justify-center gap-2">
@@ -207,12 +224,12 @@ export default function TVPage() {
               </div>
             </button>
             <button
-              onClick={() => setActiveTab('recent')}
+              onClick={() => setActiveTab("recent")}
               className={cn(
-                'flex-1 py-3 text-sm font-medium transition-colors',
-                activeTab === 'recent'
-                  ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
-                  : 'text-[var(--text-tertiary)]'
+                "flex-1 py-3 text-sm font-medium transition-colors",
+                activeTab === "recent"
+                  ? "text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]"
+                  : "text-[var(--text-tertiary)]",
               )}
             >
               <div className="flex items-center justify-center gap-2">
@@ -221,12 +238,12 @@ export default function TVPage() {
               </div>
             </button>
             <button
-              onClick={() => setActiveTab('schedule')}
+              onClick={() => setActiveTab("schedule")}
               className={cn(
-                'flex-1 py-3 text-sm font-medium transition-colors',
-                activeTab === 'schedule'
-                  ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
-                  : 'text-[var(--text-tertiary)]'
+                "flex-1 py-3 text-sm font-medium transition-colors",
+                activeTab === "schedule"
+                  ? "text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]"
+                  : "text-[var(--text-tertiary)]",
               )}
             >
               <div className="flex items-center justify-center gap-2">
@@ -239,17 +256,20 @@ export default function TVPage() {
           {/* Busca + Atualizar */}
           <div className="flex items-center gap-2 p-4">
             <div className="relative flex-1">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]"
+              />
               <input
                 type="text"
                 placeholder="Buscar canal..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-elevated)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-white/30 transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-elevated)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
               />
               {searchQuery && (
                 <button
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => setSearchQuery("")}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
                 >
                   <X size={18} />
@@ -268,15 +288,15 @@ export default function TVPage() {
           {/* Filtros de Categoria */}
           <div className="px-4 pb-4 overflow-x-auto scrollbar-hide">
             <div className="flex gap-2">
-              {categories.map(cat => (
+              {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   className={cn(
-                    'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
+                    "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
                     activeCategory === cat
-                      ? 'bg-white text-black'
-                      : 'bg-white/5 text-[var(--text-secondary)] hover:bg-white/10'
+                      ? "bg-[var(--accent-primary)] text-white"
+                      : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]/70",
                   )}
                 >
                   {cat}
@@ -291,10 +311,12 @@ export default function TVPage() {
       {!isMobile && (
         <div className="px-8 pt-8 pb-4">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-display text-[var(--text-primary)]">TV Ao Vivo</h1>
+            <h1 className="text-display text-[var(--text-primary)]">
+              TV Ao Vivo
+            </h1>
             <button
               onClick={() => loadChannels(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)]/70 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             >
               <RefreshCw size={18} />
               Atualizar
@@ -307,13 +329,16 @@ export default function TVPage() {
           {/* Busca Desktop */}
           <div className="mt-6 max-w-md">
             <div className="relative">
-              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
+              <Search
+                size={20}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]"
+              />
               <input
                 type="text"
                 placeholder="Buscar canal..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-[var(--bg-elevated)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-white/30 transition-colors"
+                className="w-full pl-12 pr-4 py-3 bg-[var(--bg-elevated)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
               />
             </div>
           </div>
@@ -321,10 +346,10 @@ export default function TVPage() {
       )}
 
       {/* Conteúdo */}
-      <div className={cn(isMobile ? 'px-4 pb-8' : 'px-8 pb-20')}>
+      <div className={cn(isMobile ? "px-4 pb-8" : "px-8 pb-20")}>
         {/* Contador de canais - substitui a antiga barra fixa no rodapé
             (que sobrepunha a navegação mobile fixa embaixo) */}
-        {!isLoading && !error && activeTab !== 'schedule' && (
+        {!isLoading && !error && activeTab !== "schedule" && (
           <p className="text-caption text-[var(--text-tertiary)] mb-4 pt-4">
             {filteredChannels.length} canais disponíveis
             {favorites.length > 0 && ` • ${favorites.length} favoritos`}
@@ -337,24 +362,28 @@ export default function TVPage() {
           </div>
         ) : error ? (
           <div className="text-center py-20">
-            <p className="text-[#ff3b30] mb-4">{error}</p>
-            <button
-              onClick={() => loadChannels()}
-              className="btn-primary"
-            >
+            <p className="text-[var(--live-accent)] mb-4">{error}</p>
+            <button onClick={() => loadChannels()} className="btn-primary">
               Tentar novamente
             </button>
           </div>
-        ) : activeTab === 'schedule' ? (
+        ) : activeTab === "schedule" ? (
           <div className="text-center py-20">
-            <Calendar size={48} className="mx-auto mb-4 text-[var(--text-tertiary)]" />
-            <h2 className="text-title text-[var(--text-primary)] mb-2">Em breve</h2>
-            <p className="text-[var(--text-secondary)]">A programação estará disponível em breve.</p>
+            <Calendar
+              size={48}
+              className="mx-auto mb-4 text-[var(--text-tertiary)]"
+            />
+            <h2 className="text-title text-[var(--text-primary)] mb-2">
+              Em breve
+            </h2>
+            <p className="text-[var(--text-secondary)]">
+              A programação estará disponível em breve.
+            </p>
           </div>
         ) : isMobile ? (
           /* Grid Mobile 2x2 */
           <div className="grid grid-cols-2 gap-3">
-            {filteredChannels.map(channel => (
+            {filteredChannels.map((channel) => (
               <ChannelCard
                 key={channel.id}
                 channel={channel}
@@ -374,7 +403,7 @@ export default function TVPage() {
                   Resultados para &quot;{searchQuery}&quot;
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {filteredChannels.map(channel => (
+                  {filteredChannels.map((channel) => (
                     <ChannelCard
                       key={channel.id}
                       channel={channel}
@@ -387,16 +416,18 @@ export default function TVPage() {
               </div>
             ) : (
               /* Por categoria */
-              Object.entries(channelsByCategory).map(([category, categoryChannels]) => (
-                <CategoryRow
-                  key={category}
-                  title={category}
-                  channels={categoryChannels}
-                  favorites={favorites}
-                  onSelectChannel={selectChannel}
-                  onToggleFavorite={toggleFavoriteById}
-                />
-              ))
+              Object.entries(channelsByCategory).map(
+                ([category, categoryChannels]) => (
+                  <CategoryRow
+                    key={category}
+                    title={category}
+                    channels={categoryChannels}
+                    favorites={favorites}
+                    onSelectChannel={selectChannel}
+                    onToggleFavorite={toggleFavoriteById}
+                  />
+                ),
+              )
             )}
           </div>
         )}
@@ -425,21 +456,22 @@ function ChannelCard({
       >
         {/* Badge LIVE */}
         <div className="absolute top-2 left-2 z-10">
-          <span className="flex items-center gap-1 px-2 py-0.5 bg-[#ff3b30] text-white text-[10px] font-bold rounded">
+          <span className="flex items-center gap-1 px-2 py-0.5 bg-[var(--live-accent)] text-white text-[10px] font-bold rounded">
             <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
             LIVE
           </span>
         </div>
 
-        {/* Logo */}
-        <div className="aspect-video flex items-center justify-center p-4 bg-[var(--bg-tertiary)]">
+        {/* Logo - fundo escuro dedicado (não segue o tema claro): a maioria
+            dos logos de canal é PNG branco pensado pra fundo escuro */}
+        <div className="aspect-video flex items-center justify-center p-4 bg-gradient-to-br from-[var(--tv-tile-bg-alt)] to-[var(--tv-tile-bg)]">
           {channel.logo ? (
             <img
               src={channel.logo}
               alt={channel.name}
               className="max-w-full max-h-full object-contain filter brightness-0 invert"
               onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
+                (e.target as HTMLImageElement).style.display = "none";
               }}
             />
           ) : (
@@ -449,7 +481,9 @@ function ChannelCard({
 
         {/* Nome */}
         <div className="p-3">
-          <p className="text-[var(--text-primary)] text-sm font-medium truncate">{channel.name}</p>
+          <p className="text-[var(--text-primary)] text-sm font-medium truncate">
+            {channel.name}
+          </p>
         </div>
       </button>
 
@@ -464,8 +498,10 @@ function ChannelCard({
         <Heart
           size={16}
           className={cn(
-            'transition-colors',
-            isFavorite ? 'fill-[#ff3b30] text-[#ff3b30]' : 'text-white'
+            "transition-colors",
+            isFavorite
+              ? "fill-[var(--live-accent)] text-[var(--live-accent)]"
+              : "text-white",
           )}
         />
       </button>
@@ -489,10 +525,10 @@ function CategoryRow({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const scroll = (direction: 'left' | 'right') => {
+  const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
-      const scrollAmount = direction === 'left' ? -400 : 400;
-      scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      const scrollAmount = direction === "left" ? -400 : 400;
+      scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
     }
   };
 
@@ -502,10 +538,10 @@ function CategoryRow({
       <div className="relative group/row">
         {/* Botao Scroll Esquerda */}
         <button
-          onClick={() => scroll('left')}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/80 rounded-full opacity-0 group-hover/row:opacity-100 transition-opacity hover:bg-black"
+          onClick={() => scroll("left")}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-[var(--bg-elevated)] shadow-[var(--shadow-md)] border border-[var(--border-color)] rounded-full opacity-0 group-hover/row:opacity-100 transition-opacity hover:bg-[var(--bg-tertiary)]"
         >
-          <ChevronLeft size={24} className="text-white" />
+          <ChevronLeft size={24} className="text-[var(--text-primary)]" />
         </button>
 
         {/* Cards */}
@@ -513,7 +549,7 @@ function CategoryRow({
           ref={scrollRef}
           className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
         >
-          {channels.map(channel => (
+          {channels.map((channel) => (
             <div key={channel.id} className="flex-shrink-0 w-48">
               <ChannelCard
                 channel={channel}
@@ -527,10 +563,10 @@ function CategoryRow({
 
         {/* Botao Scroll Direita */}
         <button
-          onClick={() => scroll('right')}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/80 rounded-full opacity-0 group-hover/row:opacity-100 transition-opacity hover:bg-black"
+          onClick={() => scroll("right")}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-[var(--bg-elevated)] shadow-[var(--shadow-md)] border border-[var(--border-color)] rounded-full opacity-0 group-hover/row:opacity-100 transition-opacity hover:bg-[var(--bg-tertiary)]"
         >
-          <ChevronRight size={24} className="text-white" />
+          <ChevronRight size={24} className="text-[var(--text-primary)]" />
         </button>
       </div>
     </div>
@@ -550,9 +586,48 @@ function TVPlayer({
   onPlayerReady: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
+  const playerUrl = getEmbedPlayerUrl(channel);
+
+  // ------------------------------------------------------------------
+  // Defesa contra REDIRECT de anúncio (não popup - esse já é bloqueado no
+  // interceptor do proxy). Sem "sandbox" no iframe (necessário pra
+  // embedtv.lat/live não mostrar a tela de bloqueio), um script dentro do
+  // player consegue navegar a aba inteira pra fora do site ou trocar só o
+  // conteúdo do iframe por uma página de anúncio - nenhum dos dois passa
+  // pelas camadas de fetch/XHR/click já interceptadas. Mesma dupla defesa
+  // usada no player de VOD (VideoPlayer.tsx).
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
+
+  useEffect(() => {
+    const resolvedUrl = new URL(playerUrl, window.location.origin).href;
+
+    const watchdog = setInterval(() => {
+      const win = iframeRef.current?.contentWindow;
+      if (!win) return;
+      try {
+        void win.location.href;
+      } catch {
+        try {
+          win.location.replace(resolvedUrl);
+        } catch {
+          // Sem sorte - o usuário ainda pode voltar manualmente (Voltar/Esc).
+        }
+      }
+    }, 1500);
+
+    return () => clearInterval(watchdog);
+  }, [playerUrl]);
 
   // Esconder controles apos 3 segundos de inatividade
   const resetHideTimer = useCallback(() => {
@@ -572,15 +647,15 @@ function TVPlayer({
     const handleMouseMove = () => resetHideTimer();
     const handleTouchStart = () => resetHideTimer();
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("touchstart", handleTouchStart);
 
     // Iniciar timer
     resetHideTimer();
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("touchstart", handleTouchStart);
       if (hideControlsTimeout.current) {
         clearTimeout(hideControlsTimeout.current);
       }
@@ -593,8 +668,9 @@ function TVPlayer({
       setIsFullscreen(!!document.fullscreenElement);
     };
 
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   // Toggle fullscreen
@@ -608,22 +684,22 @@ function TVPlayer({
         await document.exitFullscreen();
       }
     } catch (err) {
-      console.error('Erro ao alternar tela cheia:', err);
+      console.error("Erro ao alternar tela cheia:", err);
     }
   };
 
   // Teclas de atalho
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !document.fullscreenElement) {
+      if (e.key === "Escape" && !document.fullscreenElement) {
         onClose();
-      } else if (e.key === 'f' || e.key === 'F') {
+      } else if (e.key === "f" || e.key === "F") {
         toggleFullscreen();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
   return (
@@ -632,20 +708,12 @@ function TVPlayer({
       className="fixed inset-0 z-[9999] bg-black"
       onClick={resetHideTimer}
     >
-      {/* Player iframe - ocupa tudo */}
       <iframe
-        src={getEmbedPlayerUrl(channel)}
+        ref={iframeRef}
+        src={playerUrl}
         className="absolute inset-0 w-full h-full border-0"
-        allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-        referrerPolicy="no-referrer-when-downgrade"
-        // Sem atributo "sandbox": o embedtv.lat/live detecta a simples
-        // presença do sandbox (mesmo liberado) e mostra a tela "DIGA NÃO AO
-        // SANDBOX" em vez do canal. Sempre roda via /api/proxy/embed, então
-        // o interceptor injetado (sobrescreve window.open, bloqueia cliques
-        // em links de anúncio/tracking, remove scripts de ads conhecidos)
-        // continua sendo a proteção contra popup/redirect - só deixou de
-        // ser reforçada nativamente pelo navegador.
-        style={{ border: 'none', background: 'black' }}
+        allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *; clipboard-write *; accelerometer *; gyroscope *"
+        style={{ border: "none", background: "black" }}
         onLoad={() => {
           setTimeout(() => onPlayerReady(), 1500);
         }}
@@ -655,16 +723,20 @@ function TVPlayer({
       {!isPlayerReady && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black">
           <div className="w-16 h-16 border-4 border-[var(--text-primary)] border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-[var(--text-primary)] text-lg font-medium">{channel.name}</p>
-          <p className="text-[var(--text-tertiary)] text-sm mt-2">Carregando transmissão...</p>
+          <p className="text-[var(--text-primary)] text-lg font-medium">
+            {channel.name}
+          </p>
+          <p className="text-[var(--text-tertiary)] text-sm mt-2">
+            Carregando transmissão...
+          </p>
         </div>
       )}
 
       {/* Controles - aparecem/somem */}
       <div
         className={cn(
-          'absolute inset-0 z-30 pointer-events-none transition-opacity duration-300',
-          showControls ? 'opacity-100' : 'opacity-0'
+          "absolute inset-0 z-30 pointer-events-none transition-opacity duration-300",
+          showControls ? "opacity-100" : "opacity-0",
         )}
       >
         {/* Header com botao voltar */}
@@ -679,7 +751,7 @@ function TVPlayer({
             </button>
 
             <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-[#ff3b30] text-white text-sm font-bold rounded">
+              <span className="flex items-center gap-1.5 px-3 py-1 bg-[var(--live-accent)] text-white text-sm font-bold rounded">
                 <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
                 AO VIVO
               </span>
@@ -703,7 +775,9 @@ function TVPlayer({
                   {channel.name}
                 </h2>
                 {channel.category && (
-                  <p className="text-[var(--text-secondary)] text-xs sm:text-sm">{channel.category}</p>
+                  <p className="text-[var(--text-secondary)] text-xs sm:text-sm">
+                    {channel.category}
+                  </p>
                 )}
               </div>
             </div>
@@ -711,7 +785,7 @@ function TVPlayer({
             <button
               onClick={toggleFullscreen}
               className="btn-icon"
-              title={isFullscreen ? 'Sair da tela cheia (F)' : 'Tela cheia (F)'}
+              title={isFullscreen ? "Sair da tela cheia (F)" : "Tela cheia (F)"}
             >
               {isFullscreen ? <Minimize size={22} /> : <Maximize size={22} />}
             </button>
@@ -722,7 +796,9 @@ function TVPlayer({
       {/* Hint de controles - aparece ao mover o mouse quando controles estao escondidos */}
       {!showControls && isPlayerReady && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 opacity-0 hover:opacity-100 transition-opacity">
-          <p className="text-white/50 text-xs">Mova o mouse para mostrar controles</p>
+          <p className="text-white/50 text-xs">
+            Mova o mouse para mostrar controles
+          </p>
         </div>
       )}
     </div>

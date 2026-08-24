@@ -7,31 +7,56 @@
 /* Theme layer - CSS Variables (extende o tema do Tailwind) */
 @layer theme {
   :root {
-    /* Colors */
-    --bg-primary: #000000;
-    --bg-secondary: #0a0a0a;
-    --bg-tertiary: #141414;
-    --bg-elevated: #1c1c1e;
+    /* Colors - tema CLARO pastel. Fundo lavanda-branco muito suave em vez
+       de branco puro (menos "clínico"), superfícies elevadas em branco
+       real pra criar profundidade por contraste, não por escurecimento. */
+    --bg-primary: #f7f5fb;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #efebfa;
+    --bg-elevated: #ffffff;
 
-    /* Typography colors */
-    --text-primary: #f5f5f7;
-    --text-secondary: #a1a1a6;
-    --text-tertiary: #6e6e73;
+    /* Typography colors - texto escuro (não preto puro) sobre fundo claro */
+    --text-primary: #241f33;
+    --text-secondary: #6b6480;
+    --text-tertiary: #9b93ab;
 
-    /* Accent */
-    --accent-primary: #ffffff;
-    --accent-hover: #e5e5e5;
+    /* Accent - indigo/periwinkle pastel. Serve de cor de foco, links,
+       abas ativas, badges e botões primários (agora preenchidos, já que
+       um botão branco sumiria num fundo já claro). */
+    --accent-primary: #6c7bf0;
+    --accent-hover: #5563de;
+    --accent-glow: rgba(108, 123, 240, 0.3);
 
-    /* Borders & Surfaces */
-    --border-color: rgba(255, 255, 255, 0.12);
-    --border-subtle: rgba(255, 255, 255, 0.06);
-    --glass-bg: rgba(20, 20, 20, 0.9);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    /* Accent secundário - lilás pastel, usado pra diferenciar categorias
+       (ex.: tag "Série" vs tag "Filme" nas sugestões de busca). */
+    --accent-secondary: #c08af7;
+    --accent-secondary-hover: #9b5ce0;
+
+    /* Cor de "ao vivo"/erro, sucesso e aviso - tons pastel mas ainda
+       legíveis como texto/ícone sobre fundo claro. */
+    --live-accent: #f0525f;
+    --success-accent: #3fb37a;
+    --warning-accent: #e8a33d;
+
+    /* Borders & Surfaces - sombras escuras sutis em vez de brancas */
+    --border-color: rgba(36, 31, 51, 0.1);
+    --border-subtle: rgba(36, 31, 51, 0.06);
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-border: rgba(36, 31, 51, 0.08);
+
+    /* Superfície escura dedicada aos "chips" de logo de canal de TV: a
+       maioria dos logos de emissora é PNG branco/claro pensado pra ficar
+       sobre fundo escuro (inclusive o app real da Apple TV mantém os
+       tiles de canal escuros mesmo em tema claro) - por isso não migra
+       para os tokens de fundo claro acima. */
+    --tv-tile-bg: #211d38;
+    --tv-tile-bg-alt: #2b2648;
 
     /* Shadows */
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 2px 8px rgba(36, 31, 51, 0.06);
+    --shadow-md: 0 8px 24px rgba(36, 31, 51, 0.1);
+    --shadow-lg: 0 16px 48px rgba(36, 31, 51, 0.14);
+    --shadow-glow: 0 12px 40px var(--accent-glow);
 
     /* Animation timing */
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -71,21 +96,21 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(36, 31, 51, 0.16);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(36, 31, 51, 0.26);
   }
 
   ::selection {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
+    background: var(--accent-glow);
+    color: var(--text-primary);
   }
 
   :focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
   }
 }
@@ -136,16 +161,16 @@
   /* Glass morphism */
   .glass {
     background: var(--glass-bg);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
     border-bottom: 1px solid var(--glass-border);
   }
 
   /* Glass card - painéis flutuantes (login/registro, modais, etc.) */
   .glass-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
     border: 1px solid var(--glass-border);
   }
 
@@ -166,7 +191,7 @@
     width: 32px;
     height: 32px;
     border: 2px solid var(--border-color);
-    border-top-color: var(--text-primary);
+    border-top-color: var(--accent-primary);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -200,9 +225,9 @@
     animation: fadeInUp 0.4s var(--ease-out-expo);
   }
 
-  .toast-success { border-left: 3px solid #34c759; }
-  .toast-error { border-left: 3px solid #ff3b30; }
-  .toast-info { border-left: 3px solid #0a84ff; }
+  .toast-success { border-left: 3px solid var(--success-accent); }
+  .toast-error { border-left: 3px solid var(--live-accent); }
+  .toast-info { border-left: 3px solid var(--accent-primary); }
 
   /* Card Styles */
   .poster-card {
@@ -220,15 +245,15 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(36, 31, 51, 0.08);
     pointer-events: none;
   }
 
   .poster-card:hover {
     transform: scale(1.05);
     box-shadow:
-      0 20px 40px rgba(0, 0, 0, 0.5),
-      0 0 60px rgba(255, 255, 255, 0.03);
+      0 20px 40px rgba(36, 31, 51, 0.16),
+      0 0 40px var(--accent-glow);
   }
 
   /* Hero Gradients */
@@ -268,8 +293,8 @@
     padding: 14px 32px;
     font-size: 0.9375rem;
     font-weight: 500;
-    color: #000;
-    background: #fff;
+    color: #fff;
+    background: var(--accent-primary);
     border: none;
     border-radius: 12px;
     cursor: pointer;
@@ -279,8 +304,9 @@
   }
 
   .btn-primary:hover {
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--accent-hover);
     transform: scale(1.02);
+    box-shadow: 0 8px 24px var(--accent-glow);
   }
 
   .btn-primary:active {
@@ -295,9 +321,9 @@
     padding: 14px 32px;
     font-size: 0.9375rem;
     font-weight: 500;
-    color: #fff;
-    background: rgba(255, 255, 255, 0.15);
-    border: none;
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     cursor: pointer;
     transition:
@@ -306,7 +332,7 @@
   }
 
   .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(36, 31, 51, 0.1);
   }
 
   .btn-icon {
@@ -360,8 +386,9 @@
     transform: translateX(-50%);
     width: 4px;
     height: 4px;
-    background: var(--text-primary);
+    background: var(--accent-primary);
     border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent-glow);
   }
 
   /* Animation Classes */

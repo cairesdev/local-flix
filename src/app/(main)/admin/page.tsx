@@ -94,7 +94,7 @@ export default function AdminPage() {
         </div>
         <button
           onClick={loadDashboard}
-          className="w-10 h-10 flex items-center justify-center rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/10 transition-colors"
+          className="w-10 h-10 flex items-center justify-center rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
           aria-label="Atualizar"
         >
           <RefreshCw size={18} />
@@ -113,7 +113,7 @@ export default function AdminPage() {
                   'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors',
                   section === s.key
                     ? 'bg-[var(--accent-primary)] text-white'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
                 )}
               >
                 {s.icon}
@@ -173,13 +173,13 @@ function DashboardCard({
   const variantClasses = {
     default: 'bg-[var(--bg-secondary)]',
     primary: 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]',
-    success: 'bg-green-500/10 border-green-500',
+    success: 'bg-[var(--success-accent)]/10 border-[var(--success-accent)]',
   };
 
   const iconClasses = {
     default: 'text-[var(--text-secondary)]',
     primary: 'text-[var(--accent-primary)]',
-    success: 'text-green-500',
+    success: 'text-[var(--success-accent)]',
   };
 
   return (

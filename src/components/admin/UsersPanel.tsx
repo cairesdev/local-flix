@@ -178,7 +178,7 @@ export function UsersPanel({ currentUserId }: { currentUserId?: number }) {
                           title={u.status === 'active' ? 'Bloquear' : 'Ativar'}
                           disabled={isBusy || isSelf}
                           onClick={() => runAction(u.id, u.status === 'active' ? 'ban' : 'unban')}
-                          className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/10 disabled:opacity-30 transition-colors"
+                          className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 transition-colors"
                         >
                           {u.status === 'active' ? <Ban size={16} /> : <CheckCircle2 size={16} />}
                         </button>
@@ -186,7 +186,7 @@ export function UsersPanel({ currentUserId }: { currentUserId?: number }) {
                           title={u.is_admin ? 'Remover admin' : 'Tornar admin'}
                           disabled={isBusy || isSelf}
                           onClick={() => runAction(u.id, u.is_admin ? 'removeAdmin' : 'makeAdmin')}
-                          className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/10 disabled:opacity-30 transition-colors"
+                          className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 transition-colors"
                         >
                           {u.is_admin ? <ShieldOff size={16} /> : <Shield size={16} />}
                         </button>
@@ -194,7 +194,7 @@ export function UsersPanel({ currentUserId }: { currentUserId?: number }) {
                           title="Redefinir senha"
                           disabled={isBusy}
                           onClick={() => runAction(u.id, 'resetPassword')}
-                          className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/10 disabled:opacity-30 transition-colors"
+                          className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 transition-colors"
                         >
                           <KeyRound size={16} />
                         </button>
@@ -202,7 +202,7 @@ export function UsersPanel({ currentUserId }: { currentUserId?: number }) {
                           title="Excluir"
                           disabled={isBusy || isSelf}
                           onClick={() => removeUser(u.id)}
-                          className="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 disabled:opacity-30 transition-colors"
+                          className="p-2 rounded-lg text-[var(--live-accent)] hover:opacity-80 hover:bg-[var(--live-accent)]/10 disabled:opacity-30 transition-colors"
                         >
                           <Trash2 size={16} />
                         </button>

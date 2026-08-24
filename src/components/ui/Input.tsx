@@ -33,14 +33,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               'focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)]',
               'transition-colors duration-200',
               icon && 'pl-10',
-              error && 'border-red-500 focus:border-red-500 focus:ring-red-500',
+              error && 'border-[var(--live-accent)] focus:border-[var(--live-accent)] focus:ring-[var(--live-accent)]',
               className
             )}
             {...props}
           />
         </div>
         {error && (
-          <p className="mt-1 text-sm text-red-500">{error}</p>
+          <p className="mt-1 text-sm text-[var(--live-accent)]">{error}</p>
         )}
       </div>
     );

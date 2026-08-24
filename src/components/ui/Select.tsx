@@ -33,7 +33,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               'text-[var(--text-primary)] appearance-none cursor-pointer',
               'focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)]',
               'transition-colors duration-200',
-              error && 'border-red-500 focus:border-red-500 focus:ring-red-500',
+              error && 'border-[var(--live-accent)] focus:border-[var(--live-accent)] focus:ring-[var(--live-accent)]',
               className
             )}
             {...props}
@@ -53,7 +53,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             <ChevronDown size={20} />
           </div>
         </div>
-        {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+        {error && <p className="mt-1 text-sm text-[var(--live-accent)]">{error}</p>}
       </div>
     );
   }

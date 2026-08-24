@@ -113,8 +113,8 @@ export function CategoryRow({
           )}
           aria-label="Rolar para esquerda"
         >
-          <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors">
-            <ChevronLeft size={24} strokeWidth={1.5} className="text-white" />
+          <div className="w-10 h-10 rounded-full bg-[var(--bg-elevated)] shadow-[var(--shadow-md)] border border-[var(--border-color)] backdrop-blur-sm flex items-center justify-center hover:bg-[var(--bg-tertiary)] transition-colors">
+            <ChevronLeft size={24} strokeWidth={1.5} className="text-[var(--text-primary)]" />
           </div>
         </button>
 
@@ -176,8 +176,8 @@ export function CategoryRow({
           )}
           aria-label="Rolar para direita"
         >
-          <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors">
-            <ChevronRight size={24} strokeWidth={1.5} className="text-white" />
+          <div className="w-10 h-10 rounded-full bg-[var(--bg-elevated)] shadow-[var(--shadow-md)] border border-[var(--border-color)] backdrop-blur-sm flex items-center justify-center hover:bg-[var(--bg-tertiary)] transition-colors">
+            <ChevronRight size={24} strokeWidth={1.5} className="text-[var(--text-primary)]" />
           </div>
         </button>
       </div>

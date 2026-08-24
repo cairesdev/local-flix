@@ -56,14 +56,14 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in"
+        className="absolute inset-0 bg-[var(--bg-primary)]/80 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
 
       {/* Modal */}
       <div
         className={cn(
-          'relative w-full mx-4 bg-[var(--bg-secondary)] rounded-xl shadow-2xl',
+          'relative w-full mx-4 bg-[var(--bg-secondary)] rounded-xl shadow-[var(--shadow-lg)]',
           'animate-scale-in overflow-hidden',
           sizeClasses[size],
           className
@@ -72,7 +72,7 @@ export function Modal({
         {showCloseButton && (
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
             aria-label="Fechar"
           >
             <X size={20} />

@@ -62,7 +62,7 @@ export function Toast({ id, message, type = 'info', duration = 5000, onClose }: 
       <p className="flex-1 text-sm text-[var(--text-primary)]">{message}</p>
       <button
         onClick={handleClose}
-        className="p-1 rounded-full hover:bg-white/10 transition-colors"
+        className="p-1 rounded-full hover:bg-[var(--bg-tertiary)] transition-colors"
         aria-label="Fechar"
       >
         <X size={16} className="text-[var(--text-secondary)]" />

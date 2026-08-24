@@ -186,14 +186,14 @@ function ProviderGroup({
               <button
                 disabled={index === 0}
                 onClick={() => move(index, -1)}
-                className="p-1 rounded text-[var(--text-secondary)] hover:text-white disabled:opacity-20"
+                className="p-1 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-20"
               >
                 <ArrowUp size={14} />
               </button>
               <button
                 disabled={index === list.length - 1}
                 onClick={() => move(index, 1)}
-                className="p-1 rounded text-[var(--text-secondary)] hover:text-white disabled:opacity-20"
+                className="p-1 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-20"
               >
                 <ArrowDown size={14} />
               </button>
@@ -216,21 +216,21 @@ function ProviderGroup({
               </Button>
               <button
                 onClick={() => toggleActive(p)}
-                className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-white hover:bg-white/10"
+                className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                 title={p.is_active ? 'Desativar' : 'Ativar'}
               >
                 {p.is_active ? <Wifi size={16} /> : <WifiOff size={16} />}
               </button>
               <button
                 onClick={() => openEdit(p)}
-                className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-white hover:bg-white/10"
+                className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                 title="Editar"
               >
                 <Pencil size={16} />
               </button>
               <button
                 onClick={() => remove(p)}
-                className="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                className="p-2 rounded-lg text-[var(--live-accent)] hover:opacity-80 hover:bg-[var(--live-accent)]/10"
                 title="Remover"
               >
                 <Trash2 size={16} />

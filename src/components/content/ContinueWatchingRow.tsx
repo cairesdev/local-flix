@@ -60,9 +60,9 @@ export function ContinueWatchingRow() {
         {/* Botao Scroll Esquerda */}
         <button
           onClick={() => scroll('left')}
-          className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black hidden md:flex"
+          className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-[var(--bg-elevated)] shadow-[var(--shadow-md)] border border-[var(--border-color)] rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[var(--bg-tertiary)] hidden md:flex"
         >
-          <ChevronLeft size={24} className="text-white" />
+          <ChevronLeft size={24} className="text-[var(--text-primary)]" />
         </button>
 
         {/* Cards */}
@@ -78,9 +78,9 @@ export function ContinueWatchingRow() {
         {/* Botao Scroll Direita */}
         <button
           onClick={() => scroll('right')}
-          className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black hidden md:flex"
+          className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-[var(--bg-elevated)] shadow-[var(--shadow-md)] border border-[var(--border-color)] rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[var(--bg-tertiary)] hidden md:flex"
         >
-          <ChevronRight size={24} className="text-white" />
+          <ChevronRight size={24} className="text-[var(--text-primary)]" />
         </button>
       </div>
     </div>
